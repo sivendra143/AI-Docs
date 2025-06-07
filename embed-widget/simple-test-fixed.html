@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PDF Chat Widget - Simple Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        #debug {
+            background: #f0f0f0;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+            font-family: monospace;
+            white-space: pre-line;
+        }
+        .chat-icon {
+            position: absolute; 
+            bottom: 200px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            background: #4f46e5;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 9999;
+        }
+    </style>
+</head>
+<body>
+    <h1>PDF Chat Widget - Simple Test</h1>
+    <p>This is a simplified test page for the chat widget.</p>
+    
+    <div id="debug">Loading widget... (check console for errors - press F12)</div>
+
+    <!-- Widget Container (will be populated by the script) -->
+    <div id="chat-widget-container"></div>
+
+    <!-- Load the widget script -->
+    <script>
+        // Debug info
+        const debug = document.getElementById('debug');
+        function log(message) {
+            debug.textContent += '\n' + message;
+            console.log(message);
+        }
+
+        // Create and show the chat icon
+        const chatIcon = document.createElement('div');
+        chatIcon.className = 'chat-icon';
+        chatIcon.innerHTML = '💬';
+        chatIcon.addEventListener('click', initChatWidget);
+        document.body.appendChild(chatIcon);
+
+        // Function to initialize the chat widget
+        function initChatWidget() {
+            log('Initializing chat widget...');
+            
+            // Check if already loaded
+            if (window.PDFChatWidget) {
+                createWidget();
+                return;
+            }
+
+            // Load the widget script
+            log('Loading widget script...');
+            const script = document.createElement('script');
+            script.src = './dist/pdf-chat-widget.min.js';
+            script.onload = function() {
+                log('Widget script loaded successfully');
+                log('PDFChatWidget type: ' + (typeof window.PDFChatWidget));
+                createWidget();
+            };
+            script.onerror = function() {
+                log('Error loading widget script!');
+                chatIcon.style.background = '#dc2626'; // Red to indicate error
+            };
+            document.head.appendChild(script);
+        }
+
+        // Function to create the widget instance
+        function createWidget() {
+            try {
+                log('Creating widget instance...');
+                
+                // Create the widget
+                new window.PDFChatWidget({
+                    apiUrl: window.location.origin,
+                    position: 'bottom-right',
+                    primaryColor: '#4f46e5',
+                    title: 'Chat with Us',
+                    welcomeMessage: 'Hello! How can I help you today?'
+                });
+                
+                log('Widget created successfully!');
+                chatIcon.style.display = 'none'; // Hide our custom icon
+            } catch (error) {
+                log('Error creating widget: ' + error.message);
+                console.error(error);
+                chatIcon.style.background = '#dc2626'; // Red to indicate error
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,5 @@
+include src/templates/*.html
+include src/static/css/*.css
+include src/static/js/*.js
+include config.json
+

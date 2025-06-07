@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Simple Widget Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        #status {
+            padding: 10px;
+            margin: 10px 0;
+            background: #f0f0f0;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Simple Widget Test</h1>
+    <p>This is a simple test page for the PDF Chat Widget.</p>
+    
+    <div id="status">Loading widget...</div>
+    
+    <script>
+        const status = document.getElementById('status');
+        
+        // Log function to update status
+        function log(message) {
+            status.textContent += '\n' + message;
+            console.log(message);
+        }
+        
+        // Load the widget script
+        log('Loading widget script...');
+        
+        const script = document.createElement('script');
+        script.src = './dist/pdf-chat-widget.min.js';
+        script.onload = function() {
+            log('Widget script loaded');
+            log('PDFChatWidget type: ' + (typeof window.PDFChatWidget));
+            
+            try {
+                // Create the widget
+                log('Creating widget instance...');
+                const widget = new window.PDFChatWidget({
+                    apiUrl: window.location.origin,
+                    position: 'bottom-right',
+                    primaryColor: '#4f46e5',
+                    title: 'Chat with Us',
+                    welcomeMessage: 'Hello! How can I help you today?'
+                });
+                log('Widget created successfully!');
+                log('Look for the chat icon in the bottom-right corner.');
+            } catch (error) {
+                log('Error creating widget: ' + error.message);
+                console.error(error);
+            }
+        };
+        
+        script.onerror = function() {
+            log('Error loading widget script!');
+        };
+        
+        document.head.appendChild(script);
+    </script>
+</body>
+</html>

@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - PDF Chatbot</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin/admin.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body class="protected-page">
+    <div class="app-container" id="admin-panel">
+        <header>
+            <h1>PDF Chatbot Admin</h1>
+            <div class="header-actions">
+                <a href="/" class="nav-link">Chat</a>
+                <button id="logout-btn" class="logout-btn">Logout</button>
+                <div class="theme-toggle">
+                    <button id="theme-toggle-btn">
+                        <span class="light-icon">☀️</span>
+                        <span class="dark-icon">🌙</span>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <main>
+            <div class="admin-controls">
+                <button id="refresh-analytics" class="action-btn">Refresh Data</button>
+            </div>
+            
+            <div id="loading-indicator" class="loading">Loading analytics data...</div>
+            
+            <div id="analytics-data" class="analytics-container">
+                <!-- Analytics data will be loaded here -->
+            </div>
+        </main>
+
+        <footer>
+            <div class="info">
+                <p>PDF Chatbot Admin | <span id="status-indicator">Ready</span></p>
+            </div>
+        </footer>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/analytics.js') }}"></script>
+    <script>
+        // Check authentication
+        document.addEventListener('DOMContentLoaded', function() {
+            const token = localStorage.getItem('auth_token');
+            if (!token) {
+                window.location.href = '/login';
+            }
+            
+            // Logout button
+            document.getElementById('logout-btn').addEventListener('click', function() {
+                localStorage.removeItem('auth_token');
+                window.location.href = '/login';
+            });
+        });
+    </script>
+</body>
+</html>
+

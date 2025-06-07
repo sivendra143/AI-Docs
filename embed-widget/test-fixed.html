@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PDF Chat Widget - Fixed Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        #debug {
+            background: #f0f0f0;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+            font-family: monospace;
+            white-space: pre-line;
+        }
+    </style>
+</head>
+<body>
+    <h1>PDF Chat Widget - Fixed Test</h1>
+    <p>This is a test page for the fixed chat widget.</p>
+    
+    <div id="debug">Loading widget... (check console for errors - press F12)</div>
+
+    <!-- Load the widget script -->
+    <script>
+        // Debug info
+        const debug = document.getElementById('debug');
+        function log(message) {
+            debug.textContent += '\n' + message;
+            console.log(message);
+        }
+
+        // Load the widget
+        log('Loading widget script...');
+        
+        // Create a script element to load the widget
+        const script = document.createElement('script');
+        script.src = './dist/pdf-chat-widget.min.js';
+        script.onload = function() {
+            log('Widget script loaded');
+            log('PDFChatWidget type: ' + (typeof window.PDFChatWidget));
+            
+            try {
+                // Create the widget instance
+                log('Creating widget instance...');
+                new window.PDFChatWidget({
+                    apiUrl: window.location.origin,
+                    position: 'bottom-right',
+                    primaryColor: '#4f46e5',
+                    title: 'Chat with Us',
+                    welcomeMessage: 'Hello! How can I help you today?'
+                });
+                log('Widget created successfully! Look for the chat icon in the bottom-right corner.');
+            } catch (error) {
+                log('Error creating widget: ' + error.message);
+                console.error(error);
+            }
+        };
+        
+        script.onerror = function() {
+            log('Error loading widget script!');
+        };
+        
+        document.head.appendChild(script);
+    </script>
+</body>
+</html>

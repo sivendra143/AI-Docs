@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Minimal Chat Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        #chat { margin: 20px; padding: 10px; border: 1px solid #ccc; max-width: 500px; }
+        #messages { height: 200px; overflow-y: scroll; border: 1px solid #ddd; margin: 10px 0; padding: 10px; }
+        input { width: 70%; padding: 5px; }
+        button { padding: 5px 10px; }
+    </style>
+</head>
+<body>
+    <h1>Minimal Chat Test</h1>
+    <div id="chat">
+        <div id="messages"></div>
+        <input type="text" id="messageInput" placeholder="Type a message...">
+        <button onclick="sendMessage()">Send</button>
+    </div>
+
+    <script>
+        const messagesDiv = document.getElementById('messages');
+        const input = document.getElementById('messageInput');
+        
+        function addMessage(sender, text) {
+            const msg = document.createElement('div');
+            msg.textContent = `${sender}: ${text}`;
+            messagesDiv.appendChild(msg);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+        
+        async function sendMessage() {
+            const message = input.value.trim();
+            if (!message) return;
+            
+            addMessage('You', message);
+            input.value = '';
+            
+            try {
+                const response = await fetch('http://localhost:5000/api/ask', {
+                    method: 'POST',
+                    mode: 'cors',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({ question: message })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                console.log('Response data:', data);
+                addMessage('Bot', data.answer || data.message || 'No response');
+            } catch (error) {
+                console.error('Error:', error);
+                addMessage('System', `Error: ${error.message || 'Could not connect to the server'}`);
+            }
+        }
+        
+        // Allow sending with Enter key
+        input.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
+        
+        // Initial message
+        addMessage('System', 'Type a message and press Enter or click Send');
+    </script>
+</body>
+</html>

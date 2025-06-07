@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Chatbot</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/voice.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <header>
+            <h1>PDF Chatbot</h1>
+            <div class="header-actions">
+                <a href="/admin" class="nav-link">Admin</a>
+                <div class="theme-toggle">
+                    <button id="theme-toggle-btn">
+                        <span class="light-icon">☀️</span>
+                        <span class="dark-icon">🌙</span>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <main>
+            <div class="chat-container">
+                <div id="chat-messages">
+                    <div class="message system">
+                        <div class="message-content">
+                            <p>Welcome to PDF Chatbot! Ask me anything about the documents in your folder.</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="suggestions-container" id="suggestions-container">
+                    <!-- Suggestions will be added here dynamically -->
+                </div>
+
+                <div class="voice-input-container">
+                    <button id="start-recording" class="voice-btn">
+                        <span class="mic-icon"></span> Start Recording
+                    </button>
+                    <button id="stop-recording" class="voice-btn" disabled>
+                        <span class="stop-icon"></span> Stop Recording
+                    </button>
+                    <div id="recording-status"></div>
+                </div>
+
+                <div class="input-container">
+                    <form id="question-form">
+                        <input type="text" id="question-input" placeholder="Ask a question..." autocomplete="off">
+                        <button type="submit" id="send-btn">Send</button>
+                    </form>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <div class="actions">
+                <button id="refresh-btn" class="action-btn">Refresh Documents</button>
+                <select id="theme-select" class="theme-select">
+                    <option value="light">Light Theme</option>
+                    <option value="dark">Dark Theme</option>
+                    <option value="system">System Default</option>
+                </select>
+            </div>
+            <div class="info">
+                <p>PDF Chatbot | <span id="status-indicator">Ready</span></p>
+            </div>
+        </footer>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/voice/voice.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+    <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize Socket.IO
+            const socket = io();
+            
+            socket.on('connect', function() {
+                console.log('Connected to server');
+            });
+            
+            socket.on('answer', function(data) {
+                // Remove typing indicator
+                const typingIndicator = document.querySelector('.typing-indicator');
+                if (typingIndicator) {
+                    typingIndicator.remove();
+                }
+                
+                // Add bot response
+                addBotMessage(data.answer);
+                
+                // Display suggestions
+                displaySuggestions(data.suggestions);
+                
+                document.getElementById('status-indicator').textContent = 'Ready';
+            });
+            
+            // Override the form submission to use WebSockets
+            const originalSubmitHandler = questionForm.onsubmit;
+            questionForm.onsubmit = function(e) {
+                e.preventDefault();
+                
+                const question = questionInput.value.trim();
+                if (!question) return;
+                
+                // Clear input and suggestions
+                questionInput.value = '';
+                suggestionsContainer.innerHTML = '';
+                
+                // Add user message
+                addUserMessage(question);
+                
+                // Show typing indicator
+                showTypingIndicator();
+                
+                // Send question via WebSocket
+                socket.emit('ask', { question });
+                
+                document.getElementById('status-indicator').textContent = 'Processing...';
+            };
+            
+            // Theme selector
+            const themeSelect = document.getElementById('theme-select');
+            if (themeSelect) {
+                // Set initial value based on current theme
+                const currentTheme = localStorage.getItem('theme') || 'system';
+                themeSelect.value = currentTheme;
+                
+                themeSelect.addEventListener('change', function() {
+                    const selectedTheme = themeSelect.value;
+                    
+                    if (selectedTheme === 'system') {
+                        const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                        document.documentElement.setAttribute('data-theme', systemPrefersDark ? 'dark' : 'light');
+                    } else {
+                        document.documentElement.setAttribute('data-theme', selectedTheme);
+                    }
+                    
+                    localStorage.setItem('theme', selectedTheme);
+                });
+            }
+        });
+    </script>
+</body>
+</html>
+

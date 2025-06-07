@@ -1,0 +1,192 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Virtual Environment
+venv/
+ENV/
+env/
+.venv/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.pydevproject
+.settings/
+*.sublime-*
+
+# Jupyter Notebook
+.ipynb_checkpoints
+.ipython/
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+logs/
+
+# Local development
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Database
+*.db
+*.sqlite3
+*.sqlite
+
+# Distribution / packaging
+.Python
+build/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+
+# Translations
+*.mo
+*.pot
+
+# Sphinx documentation
+docs/_build/
+
+# PyCharm
+.idea/
+*.iml
+
+# VS Code
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*/.ipynb_checkpoints/*
+
+# Pyre type checker
+.pyre/
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# PyCharm
+.idea/
+*.iml
+*.ipr
+*.iws
+.idea_modules/
+
+# Vim
+*.swp
+*.swo
+*~
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+ehthumbs.db
+Thumbs.db
+
+# Project specific
+*.pkl
+*.h5
+*.hdf5
+*.pt
+*.pth
+*.bin
+*.onnx
+*.tflite
+*.pb
+*.pbtxt
+*.npy
+*.npz
+*.parquet
+*.feather
+*.orc
+*.avro
+*.snappy.parquet
+
+# Project directories
+/pdf_docs/*
+!/pdf_docs/.gitkeep
+
+# Uploads directory
+/uploads/*
+!/uploads/.gitkeep
+
+# Local development
+.env.local
+.env.development
+.env.test
+
+# Local configuration overrides
+config.local.json
+
+# Test outputs
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Documentation
+/docs/_build/
+
+# Build artifacts
+/build/
+/dist/
+*.egg-info/
+
+# Local scripts
+*.log
+*.sqlite3
+
+# VS Code workspace settings
+*.code-workspace
