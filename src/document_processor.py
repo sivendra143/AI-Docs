@@ -1,7 +1,7 @@
 # document_processor.py
 
 import os
-import fitz  # PyMuPDF
+from pypdf import PdfReader  # Using pypdf instead of PyMuPDF
 import docx
 import csv
 from langchain.text_splitter import RecursiveCharacterTextSplitter
@@ -22,10 +22,9 @@ class DocumentProcessor:
     def _extract_text_from_pdf(self, file_path):
         text = ""
         try:
-            document = fitz.open(file_path)
-            for page_num in range(len(document)):
-                page = document.load_page(page_num)
-                text += page.get_text()
+            reader = PdfReader(file_path)
+            for page in reader.pages:
+                text += page.extract_text() + "\n"
         except Exception as e:
             print(f"Error extracting text from PDF {file_path}: {e}")
         return text

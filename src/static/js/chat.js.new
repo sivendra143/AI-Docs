@@ -1,0 +1,155 @@
+// chat.js - Main chat functionality
+
+class ChatApp {
+    constructor() {
+        this.socket = null;
+        this.currentConversationId = null;
+        this.currentLanguage = 'en';
+        this.isProcessing = false;
+        
+        // DOM Elements
+        this.chatMessages = document.getElementById('chat-messages');
+        this.questionForm = document.getElementById('question-form');
+        this.questionInput = document.getElementById('question-input');
+        this.suggestionsContainer = document.getElementById('suggestions-container');
+        this.statusIndicator = document.getElementById('status-indicator');
+        
+        this.initialize();
+    }
+    
+    async initialize() {
+        this.setupEventListeners();
+        this.setupSocket();
+    }
+    
+    setupEventListeners() {
+        // Form submission
+        this.questionForm.addEventListener('submit', (e) => this.handleSubmit(e));
+    }
+    
+    setupSocket() {
+        console.log('[WebSocket] Initializing WebSocket connection...');
+        
+        this.socket = io({
+            reconnection: true,
+            reconnectionAttempts: 5,
+            reconnectionDelay: 1000,
+            timeout: 10000,
+            transports: ['websocket', 'polling'],
+            upgrade: true,
+            forceNew: true
+        });
+        
+        // Connection established
+        this.socket.on('connect', () => {
+            console.log('[WebSocket] Connected to server');
+            this.updateStatus('Connected');
+        });
+        
+        // Connection lost
+        this.socket.on('disconnect', (reason) => {
+            console.log(`[WebSocket] Disconnected: ${reason}`);
+            this.updateStatus('Disconnected');
+        });
+        
+        // Handle errors
+        this.socket.on('connect_error', (error) => {
+            console.error('[WebSocket] Connection error:', error);
+            this.updateStatus('Connection error');
+        });
+        
+        // Handle chat responses
+        this.socket.on('ask_response', (data) => this.handleBotResponse(data));
+    }
+    
+    updateStatus(status) {
+        if (this.statusIndicator) {
+            this.statusIndicator.textContent = status;
+        }
+    }
+    
+    async handleSubmit(e) {
+        e.preventDefault();
+        
+        const question = this.questionInput.value.trim();
+        if (!question || this.isProcessing) return;
+        
+        this.isProcessing = true;
+        this.questionInput.value = '';
+        this.addUserMessage(question);
+        this.showTypingIndicator();
+        
+        try {
+            this.socket.emit('ask', {
+                question: question,
+                conversation_id: this.currentConversationId,
+                language: this.currentLanguage
+            });
+        } catch (error) {
+            console.error('Error sending message:', error);
+            this.addSystemMessage('Failed to send message');
+            this.isProcessing = false;
+        }
+    }
+    
+    handleBotResponse(data) {
+        this.isProcessing = false;
+        this.removeTypingIndicator();
+        
+        if (data.answer) {
+            this.addBotMessage(data.answer);
+        } else if (data.error) {
+            this.addSystemMessage(`Error: ${data.error}`);
+        }
+    }
+    
+    addUserMessage(text) {
+        this.addMessage(text, 'user');
+    }
+    
+    addBotMessage(text) {
+        this.addMessage(text, 'bot');
+    }
+    
+    addSystemMessage(text) {
+        this.addMessage(text, 'system');
+    }
+    
+    addMessage(text, type) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${type}`;
+        
+        const contentDiv = document.createElement('div');
+        contentDiv.className = 'message-content';
+        contentDiv.textContent = text;
+        
+        messageDiv.appendChild(contentDiv);
+        this.chatMessages.appendChild(messageDiv);
+        this.scrollToBottom();
+    }
+    
+    showTypingIndicator() {
+        const typingDiv = document.createElement('div');
+        typingDiv.id = 'typing-indicator';
+        typingDiv.className = 'message bot';
+        typingDiv.innerHTML = '<div class="typing"><span></span><span></span><span></span></div>';
+        this.chatMessages.appendChild(typingDiv);
+        this.scrollToBottom();
+    }
+    
+    removeTypingIndicator() {
+        const typingIndicator = document.getElementById('typing-indicator');
+        if (typingIndicator) {
+            typingIndicator.remove();
+        }
+    }
+    
+    scrollToBottom() {
+        this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
+    }
+}
+
+// Initialize the chat when the DOM is fully loaded
+document.addEventListener('DOMContentLoaded', () => {
+    window.chatApp = new ChatApp();
+});

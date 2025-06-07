@@ -4,146 +4,154 @@ A local AI chatbot that reads PDFs and other document formats from a folder and 
 
 ## Features
 
-- Scan a folder for PDF files and other document formats (DOCX, TXT, CSV)
+- Scan a folder for PDF files and other document formats (DOCX, TXT, CSV, XLSX)
 - Extract and chunk content using PyMuPDF or pdfplumber
 - Generate embeddings using SentenceTransformers
 - Index embeddings in FAISS for fast vector search
-- Ask questions via CLI or Web UI
-- Use a local LLM via LM Studio or Ollama for RAG-style answers
+- Ask questions via Web UI
+- Use a local LLM for RAG-style answers
 - Fallback for out-of-scope queries
 - Smart suggestions based on previous questions and context
 - WebSocket for real-time communication
 - Voice input using Whisper
 - User Authentication with JWT
-- Admin analytics dashboard
+- Admin dashboard
 - Dark/light theme toggle
-- Packaged build with Docker support
 
 ## Requirements
 
 - Python 3.8+
-- LM Studio or Ollama for local LLM access
+- Node.js 16+ (for frontend assets)
+- Git
 
-## Installation
+## Getting Started
 
-### Option 1: Using pip
-
-```bash
-pip install -r requirements.txt
-```
-
-### Option 2: Using Docker
+### 1. Clone the Repository
 
 ```bash
-docker build -t pdf-chatbot .
+git clone https://github.com/yourusername/ai-docs.git
+cd ai-docs
 ```
 
-Or using docker-compose:
+### 2. Set Up the Environment
 
-```bash
-docker-compose up -d
+#### Windows
+
+1. Run the setup script:
+   ```powershell
+   .\setup_env.ps1
+   ```
+
+2. Start the development server:
+   ```powershell
+   .\run.ps1
+   ```
+
+#### Linux/macOS
+
+1. Make the setup script executable:
+   ```bash
+   chmod +x setup_env.sh
+   ```
+
+2. Run the setup script:
+   ```bash
+   ./setup_env.sh
+   ```
+
+3. Start the development server:
+   ```bash
+   ./run.sh
+   ```
+
+### 3. Access the Application
+
+Open your web browser and navigate to:
+
 ```
+http://localhost:5000
+```
+
+Default login credentials:
+- Username: `admin`
+- Password: `admin123`
 
 ## Configuration
 
-Edit the `config.json` file to customize your setup:
-
-```json
-{
-    "docs_folder": "./docs/",
-    "supported_file_types": ["pdf", "docx", "txt", "csv"],
-    "chunk_size": 1000,
-    "chunk_overlap": 200,
-    "embedding_model": "all-MiniLM-L6-v2",
-    "llm_model_path": "",
-    "llm_api_base": "http://localhost:11434/v1",
-    "ui_type": "web",
-    "host": "0.0.0.0",
-    "port": 5000
-}
-```
-
-## Usage
-
-### CLI Interface
+Copy `.env.example` to `.env` and modify the settings as needed:
 
 ```bash
-./run_cli.sh
+cp .env.example .env
 ```
 
-Or:
+Edit the `.env` file to customize your setup:
 
-```bash
-python src/cli.py
+```env
+# Application Settings
+FLASK_APP=src.app:app
+FLASK_ENV=development
+SECRET_KEY=your-secret-key
+
+# Database
+DATABASE_URL=sqlite:///instance/chatbot.db
+
+# File Uploads
+UPLOAD_FOLDER=uploads
+MAX_CONTENT_LENGTH=16777216  # 16MB
+
+# CORS
+CORS_ORIGINS=http://localhost:5000,http://127.0.0.1:5000,file://*
+
+# Model Settings
+MODEL_NAME=all-MiniLM-L6-v2
+EMBEDDING_MODEL=sentence-transformers/all-MiniLM-L6-v2
 ```
-
-### Web Interface
-
-```bash
-./run_web.sh
-```
-
-Or:
-
-```bash
-python src/app.py
-```
-
-Then open your browser to http://localhost:5000
-
-## Admin Dashboard
-
-Access the admin dashboard at http://localhost:5000/admin
-
-Default credentials:
-- Username: admin
-- Password: admin123
 
 ## Project Structure
 
 ```
-chatbot_project/
-├── config.json           # Configuration file
-├── Dockerfile            # Docker configuration
-├── docker-compose.yml    # Docker Compose configuration
-├── requirements.txt      # Python dependencies
-├── run_cli.sh            # CLI executable script
-├── run_web.sh            # Web executable script
-├── setup.py              # Package setup file
-├── MANIFEST.in           # Package manifest
-├── docs/                 # Default folder for documents
-└── src/                  # Source code
-    ├── app.py            # Web application
-    ├── cli.py            # CLI application
-    ├── document_processor.py # Multi-format document processor
-    ├── llm_rag.py        # LLM and RAG implementation
-    ├── voice_input.py    # Voice input processing
-    ├── api.py            # API endpoints
-    ├── websocket.py      # WebSocket implementation
-    ├── templates/        # HTML templates
-    │   ├── index.html    # Main web interface
-    │   ├── login.html    # Login page
-    │   └── admin.html    # Admin dashboard
-    └── static/           # Static assets
-        ├── css/          # CSS styles
-        │   ├── styles.css
-        │   ├── login.css
-        │   ├── voice.css
-        │   └── admin/
-        │       └── admin.css
-        └── js/           # JavaScript files
-            ├── script.js
-            ├── theme.js
-            ├── analytics.js
-            └── voice/
-                └── voice.js
+.
+├── src/                    # Application source code
+│   ├── __init__.py         # Application factory
+│   ├── app.py              # Main application module
+│   ├── config.py           # Configuration settings
+│   ├── models.py           # Database models
+│   ├── routes.py           # API routes
+│   ├── document_processor.py # Document processing logic
+│   ├── llm_rag.py          # LLM and RAG implementation
+│   ├── websocket.py        # WebSocket handlers
+│   └── static/             # Static files (CSS, JS, images)
+│   └── templates/          # HTML templates
+├── tests/                  # Test files
+├── uploads/                # User-uploaded files
+├── .env.example            # Example environment variables
+├── requirements.txt        # Python dependencies
+├── setup_env.ps1           # Windows setup script
+├── run.ps1                 # Windows run script
+└── README.md               # This file
+```
+
+## Development
+
+### Running Tests
+
+```bash
+python -m pytest tests/
+```
+
+### Code Style
+
+This project uses `black` for code formatting and `flake8` for linting.
+
+```bash
+# Format code
+black .
+
+
+# Lint code
+flake8
 ```
 
 ## License
 
 MIT
-
-## Author
-
-Manus AI
-

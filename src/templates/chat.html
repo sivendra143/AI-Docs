@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Chatbot</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/chat.css') }}">
+    
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Socket.IO -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
+    
+    <style>
+        /* Loading animation */
+        .app-loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: var(--bg-color);
+            z-index: 9999;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        
+        .app-loading.hidden {
+            opacity: 0;
+            visibility: hidden;
+        }
+        
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid var(--border-color);
+            border-top-color: var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 1rem;
+        }
+        
+        .loading-text {
+            font-size: 1.1rem;
+            color: var(--text-color);
+            margin-top: 1rem;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading screen -->
+    <div class="app-loading" id="loading-screen">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Loading chat...</div>
+    </div>
+    
+    <!-- Main app container -->
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2 class="sidebar-title">Conversations</h2>
+                <button class="btn btn-icon" id="sidebar-toggle">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="sidebar-content">
+                <div id="conversation-list" class="conversation-list">
+                    <!-- Conversations will be loaded here -->
+                    <div class="no-conversations">No conversations yet</div>
+                </div>
+            </div>
+            
+            <div class="sidebar-actions">
+                <button id="new-chat-btn" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> New Chat
+                </button>
+            </div>
+            
+            <div class="user-settings">
+                <div class="form-group">
+                    <label for="theme-select" class="form-label">Theme</label>
+                    <div class="select-wrapper">
+                        <select id="theme-select" class="form-control">
+                            <option value="system">System</option>
+                            <option value="light">Light</option>
+                            <option value="dark">Dark</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="language-select" class="form-label">Language</label>
+                    <div class="select-wrapper">
+                        <select id="language-select" class="form-control">
+                            <option value="en">English</option>
+                            <option value="es">Español</option>
+                            <option value="fr">Français</option>
+                            <option value="de">Deutsch</option>
+                            <option value="it">Italiano</option>
+                            <option value="pt">Português</option>
+                            <option value="ru">Русский</option>
+                            <option value="zh">中文</option>
+                            <option value="ja">日本語</option>
+                            <option value="ko">한국어</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </aside>
+        
+        <!-- Main content -->
+        <main class="main-content" id="main-content">
+            <!-- Header -->
+            <header class="header">
+                <button class="btn btn-icon" id="menu-toggle">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <h1>AI Chatbot</h1>
+                <div class="header-actions">
+                    <button id="export-txt-btn" class="btn btn-icon tooltip" title="Export as TXT">
+                        <i class="fas fa-file-alt"></i>
+                        <span class="tooltip-text">Export as TXT</span>
+                    </button>
+                    <button id="export-pdf-btn" class="btn btn-icon tooltip" title="Export as PDF">
+                        <i class="fas fa-file-pdf"></i>
+                        <span class="tooltip-text">Export as PDF</span>
+                    </button>
+                    <button id="help-btn" class="btn btn-icon tooltip" title="Help">
+                        <i class="fas fa-question-circle"></i>
+                        <span class="tooltip-text">Help</span>
+                    </button>
+                </div>
+            </header>
+            
+            <!-- Chat container -->
+            <div class="chat-container">
+                <!-- Chat messages -->
+                <div class="chat-messages" id="chat-messages">
+                    <!-- Messages will be added here -->
+                </div>
+                
+                <!-- Suggestions -->
+                <div class="suggestions-container" id="suggestions-container">
+                    <!-- Suggestions will be added here -->
+                </div>
+                
+                <!-- Input area -->
+                <div class="input-area">
+                    <form id="question-form" class="question-form">
+                        <div class="form-group" style="flex: 1; margin: 0;">
+                            <textarea 
+                                id="question-input" 
+                                class="question-input" 
+                                placeholder="Type your message here..." 
+                                rows="1"
+                                required
+                            ></textarea>
+                        </div>
+                        <button type="submit" class="send-button" id="send-button">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </form>
+                    <div class="status-bar">
+                        <span id="status-indicator">Connecting...</span>
+                        <span class="text-muted">Press Ctrl+Enter to send</span>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <!-- Help Modal -->
+    <div class="modal" id="help-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Help & Shortcuts</h2>
+                <button class="modal-close" id="close-help-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <h3>Keyboard Shortcuts</h3>
+                <ul>
+                    <li><kbd>Ctrl</kbd> + <kbd>Enter</kbd> - Send message</li>
+                    <li><kbd>Esc</kbd> - Clear input</li>
+                    <li><kbd>Ctrl</kbd> + <kbd>N</kbd> - New chat</li>
+                    <li><kbd>Ctrl</kbd> + <kbd>K</kbd> - Toggle keyboard shortcuts</li>
+                </ul>
+                
+                <h3>Features</h3>
+                <ul>
+                    <li>Click on a suggestion to use it as your next message</li>
+                    <li>Export your conversations as TXT or PDF</li>
+                    <li>Switch between light and dark themes</li>
+                    <li>Chat in multiple languages</li>
+                </ul>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" id="close-help-modal-btn">Close</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- JavaScript -->
+    <script src="{{ url_for('static', filename='js/chat.js') }}"></script>
+    <script>
+        // Hide loading screen when the page is fully loaded
+        window.addEventListener('load', () => {
+            const loadingScreen = document.getElementById('loading-screen');
+            if (loadingScreen) {
+                loadingScreen.classList.add('hidden');
+                
+                // Remove from DOM after animation completes
+                setTimeout(() => {
+                    loadingScreen.remove();
+                }, 300);
+            }
+        });
+    </script>
+</body>
+</html>

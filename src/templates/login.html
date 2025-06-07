@@ -40,8 +40,13 @@
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
             const errorElement = document.getElementById('login-error');
+            const submitBtn = this.querySelector('button[type="submit"]');
             
             try {
+                // Disable the submit button to prevent multiple submissions
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Logging in...';
+                
                 const response = await fetch('/api/login', {
                     method: 'POST',
                     headers: {
@@ -53,15 +58,23 @@
                 const data = await response.json();
                 
                 if (response.ok) {
-                    // Store token and redirect
-                    localStorage.setItem('auth_token', data.token);
-                    window.location.href = '/admin';
+                    console.log('Login successful:', data);
+                    // Store user data in localStorage
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    // Redirect to chat page
+                    window.location.href = '/';
                 } else {
                     errorElement.textContent = data.message || 'Login failed';
+                    // Re-enable the submit button on error
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Login';
                 }
             } catch (error) {
                 console.error('Error:', error);
-                errorElement.textContent = 'An error occurred. Please try again.';
+                errorElement.textContent = 'An error occurred. Please check the console for details.';
+                // Re-enable the submit button on error
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Login';
             }
         });
     </script>

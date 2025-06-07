@@ -1,93 +1,131 @@
-# app.py
+# src/app.py
 
 import os
+import sys
 import json
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, jsonify, render_template, redirect, url_for
+from flask_login import current_user, login_required, login_user, logout_user
+from werkzeug.security import generate_password_hash
 from flask_cors import CORS
-from document_processor import DocumentProcessor
-from llm_rag import ChatbotLLM
-from api import setup_api_routes
-from voice_input import setup_voice_routes
-from websocket import setup_websocket
 
-app = Flask(__name__)
-CORS(app, resources={
-    r"/api/*": {
-        "origins": ["http://localhost:*", "http://127.0.0.1:*", "file:///*"],
-        "methods": ["GET", "POST", "OPTIONS"],
-        "allow_headers": ["Content-Type"]
-    }
-})
+# Add parent directory to path for local execution
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# Global variables
-config = None
+try:
+    from . import create_app, db
+    from .models import User, Conversation, Message
+except ImportError:
+    from src import create_app, db
+    from src.models import User, Conversation, Message
+
+# Globals
 processor = None
 chatbot = None
 vector_store = None
+conversation_manager = None
 
-def initialize_app(config_path=os.path.join(os.path.dirname(os.path.dirname(__file__)), 'config.json')):
-    global config, processor, chatbot, vector_store
-    
-    # Load configuration
-    with open(config_path, 'r') as f:
-        config = json.load(f)
-    
-    # Ensure docs folder exists
-    docs_folder = config['docs_folder']
-    if not os.path.exists(docs_folder):
-        os.makedirs(docs_folder)
-        print(f"Created documents folder: {docs_folder}")
-    
-    # Process documents if any exist
-    processor = DocumentProcessor(docs_folder, config_path)
-    processor.process_documents()
-    vector_store = processor.get_vector_store()
-    
-    if vector_store:
-        # Initialize chatbot
-        chatbot = ChatbotLLM(vector_store, config_path)
-        print("Chatbot initialized successfully!")
-    else:
-        print("No document content was processed. Please add documents to the folder.")
 
-@app.route('/')
-def index():
-    return render_template('index.html')
+def initialize_components(app, config_path=None):
+    global processor, chatbot, vector_store, conversation_manager
 
-@app.route('/login')
-def login_page():
-    return render_template('login.html')
+    if config_path and os.path.exists(config_path):
+        with open(config_path, 'r') as f:
+            app.config.update(json.load(f))
 
-@app.route('/admin')
-def admin_page():
-    return render_template('admin.html')
+    uploads_folder = app.config.get('UPLOAD_FOLDER', 'uploads')
+    os.makedirs(uploads_folder, exist_ok=True)
 
-@app.route('/api/refresh', methods=['POST'])
-def refresh():
-    global processor, vector_store, chatbot
+    docs_folder = app.config.get('DOCS_FOLDER', 'docs')
+    os.makedirs(docs_folder, exist_ok=True)
+
+    try:
+        from src.document_processor import DocumentProcessor
+        from src.llm_rag import ChatbotLLM
+        from src.conversation_manager import ConversationManager
+
+        processor = DocumentProcessor(app.config)
+        chatbot = ChatbotLLM(app.config)
+        processor.process_documents()
+        vector_store = processor.vector_store
+        conversation_manager = ConversationManager()
+
+        print("✅ Application components initialized")
+        return True
+    except Exception as e:
+        print(f"❌ Error initializing components: {str(e)}")
+        return False
+
+
+def setup_app():
+    # Ensure required directories exist
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    for directory in ['instance', 'uploads', 'static']:
+        os.makedirs(os.path.join(base_dir, directory), exist_ok=True)
     
-    # Re-process documents
-    processor.process_documents()
-    vector_store = processor.get_vector_store()
+    # Create the Flask app
+    app = create_app('development')
     
-    if vector_store:
-        chatbot = ChatbotLLM(vector_store, 'config.json')
-        return jsonify({'status': 'success', 'message': 'Documents refreshed successfully.'})
-    else:
-        return jsonify({'status': 'error', 'message': 'No documents found to process.'})
+    # Register Blueprints
+    from src.routes import api_bp, root_bp
+    
+    # Only register the blueprints if they're not already registered
+    if 'api' not in app.blueprints:
+        app.register_blueprint(api_bp, url_prefix='/api')
+    
+    if 'root' not in app.blueprints:
+        app.register_blueprint(root_bp, url_prefix='/')
+    
+    # Register Swagger (optional)
+    try:
+        from flask_swagger_ui import get_swaggerui_blueprint
+        swaggerui_blueprint = get_swaggerui_blueprint(
+            '/docs', '/static/swagger.json', config={'app_name': "Flask AI App"}
+        )
+        app.register_blueprint(swaggerui_blueprint, url_prefix='/docs')
+    except ImportError:
+        print("⚠️ Flask-Swagger-UI not installed. API documentation will not be available.")
+    
+    # Ensure instance directory exists
+    instance_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'instance')
+    os.makedirs(instance_path, exist_ok=True)
+    
+    # Database initialization is now handled in __init__.py
+    print("✅ Application setup complete")
+    
+    # Create test user in development mode
+    if app.debug:
+        with app.app_context():
+            test_user = User.query.filter_by(username='test').first()
+            if not test_user:
+                test_user = User(
+                    username='test',
+                    email='test@example.com',
+                    password=generate_password_hash('test123'),
+                    is_admin=False,
+                    preferred_language='en'
+                )
+                db.session.add(test_user)
+                print("👤 Created test user")
+                db.session.commit()
+
+    # Initialize WebSocket setup
+    try:
+        from src.websocket import setup_websocket
+        socketio = setup_websocket(app, chatbot)
+    except ImportError as e:
+        print(f"⚠️ WebSocket setup failed: {str(e)}")
+        socketio = None
+
+    return socketio, app
+
 
 if __name__ == '__main__':
-    initialize_app()
-    
-    # Setup API routes
-    setup_api_routes(app, chatbot)
-    
-    # Setup voice routes
-    setup_voice_routes(app, chatbot)
-    
-    # Setup WebSocket
-    socketio = setup_websocket(app, chatbot)
-    
-    # Run the app with socketio
-    socketio.run(app, host=config['host'], port=config['port'], debug=True)
+    socketio, app = setup_app()
 
+    for rule in app.url_map.iter_rules():
+        print(f"[ROUTE] {rule} -> {rule.endpoint}")
+
+    if socketio:
+        socketio.run(app, host='0.0.0.0', port=5000, debug=True)
+    else:
+        app.run(host='0.0.0.0', port=5000, debug=True)
