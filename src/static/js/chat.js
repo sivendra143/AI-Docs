@@ -86,36 +86,81 @@ class ChatApp {
     setupSocket() {
         console.log('[WebSocket] Initializing WebSocket connection...');
         
-        this.socket = io({
+        // Configuration for WebSocket connection
+        const socketConfig = {
             reconnection: true,
-            reconnectionAttempts: 5,
+            reconnectionAttempts: 10,  // Increased from 5 to 10
             reconnectionDelay: 1000,
-            timeout: 10000,
+            reconnectionDelayMax: 5000,  // Maximum delay between reconnection attempts
+            timeout: 15000,  // Increased from 10000 to 15000
             transports: ['websocket', 'polling'],
             upgrade: true,
-            forceNew: true
-        });
+            forceNew: true,
+            autoConnect: true
+        };
+        
+        // Connect to WebSocket server on port 5000
+        this.socket = io('http://localhost:5000', socketConfig);
         
         // Connection established
         this.socket.on('connect', () => {
-            console.log('[WebSocket] Connected to server');
+            console.log('[WebSocket] Successfully connected to server');
             this.updateStatus('Connected');
+            this.addSystemMessage('Connected to the chat server');
+            
+            // If we have a current conversation, rejoin it
+            if (this.currentConversationId) {
+                console.log(`[WebSocket] Rejoining conversation ${this.currentConversationId}`);
+                this.socket.emit('join_conversation', {
+                    conversation_id: this.currentConversationId
+                });
+            }
         });
         
         // Connection lost
         this.socket.on('disconnect', (reason) => {
             console.log(`[WebSocket] Disconnected: ${reason}`);
             this.updateStatus('Disconnected');
+            
+            if (reason === 'io server disconnect') {
+                // The server intentionally disconnected us, try to reconnect
+                console.log('[WebSocket] Server disconnected us, attempting to reconnect...');
+                this.socket.connect();
+            } else {
+                this.addSystemMessage('Disconnected from the chat server. Attempting to reconnect...');
+            }
+        });
+        
+        // Reconnection events
+        this.socket.on('reconnect_attempt', (attemptNumber) => {
+            console.log(`[WebSocket] Reconnection attempt ${attemptNumber}`);
+            this.updateStatus(`Reconnecting (${attemptNumber}/${socketConfig.reconnectionAttempts})...`);
+        });
+        
+        this.socket.on('reconnect_failed', () => {
+            console.error('[WebSocket] Failed to reconnect after all attempts');
+            this.updateStatus('Connection failed');
+            this.addSystemMessage('Failed to reconnect to the chat server. Please refresh the page to try again.');
         });
         
         // Handle errors
         this.socket.on('connect_error', (error) => {
             console.error('[WebSocket] Connection error:', error);
             this.updateStatus('Connection error');
+            this.addSystemMessage(`Connection error: ${error.message}. Retrying...`);
         });
         
         // Handle chat responses
-        this.socket.on('ask_response', (data) => this.handleBotResponse(data));
+        this.socket.on('ask_response', (data) => {
+            console.log('[WebSocket] Received ask_response:', data);
+            this.handleBotResponse(data);
+        });
+        
+        // Handle errors from the server
+        this.socket.on('error', (error) => {
+            console.error('[WebSocket] Error from server:', error);
+            this.addSystemMessage(`Error: ${error.message || 'An unknown error occurred'}`);
+        });
     }
     
     updateStatus(status) {
@@ -152,15 +197,29 @@ class ChatApp {
         this.isProcessing = false;
         this.removeTypingIndicator();
         
-        if (data.answer) {
-            this.addBotMessage(data.answer);
+        // Handle both 'response' and 'answer' fields for backward compatibility
+        const responseText = data.response || data.answer;
+        
+        if (responseText) {
+            this.addBotMessage(responseText);
+            
+            // If this is a new conversation, update the current conversation ID
+            if (data.conversation_id && !this.currentConversationId) {
+                this.currentConversationId = data.conversation_id;
+                console.log(`[Chat] New conversation started: ${this.currentConversationId}`);
+            }
         } else if (data.error) {
             this.addSystemMessage(`Error: ${data.error}`);
+        } else {
+            console.error('Received malformed response:', data);
+            this.addSystemMessage('Received an unexpected response from the server');
         }
         
         if (data.suggestions && data.suggestions.length > 0) {
             this.displaySuggestions(data.suggestions);
         }
+        
+        console.log('[Chat] Bot response processed:', data);
     }
     
     addUserMessage(text) {

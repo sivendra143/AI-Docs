@@ -343,8 +343,9 @@ def setup_websocket(app, chatbot):
                 )
                 db.session.add(user_msg)
                 db.session.commit()
+                logger.info(f"Saved user question to conversation {conversation_id}")
                 
-                # Process the question with the chatbot in a background task
+                # Define the background task for processing the question
                 def process_question():
                     import time
                     start_time = time.time()
@@ -352,13 +353,7 @@ def setup_websocket(app, chatbot):
                     try:
                         logger.info(f"[DEBUG] Starting to process question in conversation {conversation_id}")
                         
-                        # Log the input parameters
-                        logger.info(f"[DEBUG] Question: {question}")
-                        logger.info(f"[DEBUG] User ID: {user_id}")
-                        logger.info(f"[DEBUG] Language: {language}")
-                        
                         # Get conversation history for context
-                        from .models import Message
                         try:
                             history_messages = Message.query.filter_by(
                                 conversation_id=conversation_id,
@@ -366,14 +361,14 @@ def setup_websocket(app, chatbot):
                             ).order_by(Message.created_at.desc()).limit(5).all()
                             logger.info(f"[DEBUG] Retrieved {len(history_messages)} history messages")
                             
-                            # Format conversation history
+                            # Format conversation history (oldest first)
                             conversation_history = [
                                 {
                                     'content': msg.content,
                                     'is_user': msg.is_user,
                                     'created_at': msg.created_at.isoformat()
                                 }
-                                for msg in reversed(history_messages)  # Oldest first
+                                for msg in reversed(history_messages)
                             ]
                         except Exception as e:
                             logger.error(f"[ERROR] Error getting conversation history: {str(e)}", exc_info=True)
@@ -400,77 +395,71 @@ def setup_websocket(app, chatbot):
                                     logger.warning("[WARNING] Empty response from chatbot.get_response")
                                     bot_response = "I'm sorry, I couldn't generate a response. Please try again."
                                 
-                                return bot_response
+                                # Save bot response
+                                logger.info("[DEBUG] Saving bot response to database...")
+                                try:
+                                    bot_msg = Message(
+                                        conversation_id=conversation_id,
+                                        content=bot_response,
+                                        is_user=False,
+                                        language=language
+                                    )
+                                    db.session.add(bot_msg)
+                                    db.session.commit()
+                                    logger.info("[DEBUG] Successfully saved bot response to database")
+                                    
+                                    # Prepare response data
+                                    response_data = {
+                                        'conversation_id': conversation_id,
+                                        'response': bot_response,
+                                        'timestamp': datetime.utcnow().isoformat(),
+                                        'status': 'success'
+                                    }
+                                    
+                                    # Emit the response
+                                    logger.info(f"[DEBUG] Sending ask_response event with data: {response_data}")
+                                    socketio.emit('ask_response', response_data, room=request.sid)
+                                    logger.info("[DEBUG] ask_response event sent")
+                                    
+                                    return response_data
+                                    
+                                except Exception as e:
+                                    error_msg = f"Error saving bot response: {str(e)}"
+                                    logger.error(f"[ERROR] {error_msg}", exc_info=True)
+                                    socketio.emit('error', {'message': error_msg}, room=request.sid)
+                                    return {'status': 'error', 'message': error_msg}
                                 
                             except FutureTimeoutError:
                                 error_msg = "The request timed out. Please try again with a different question."
                                 logger.error(f"[ERROR] {error_msg}")
-                                return error_msg
+                                socketio.emit('error', {'message': error_msg}, room=request.sid)
+                                return {'status': 'error', 'message': error_msg}
                                 
                             except Exception as e:
                                 error_msg = f"Error getting response from chatbot: {str(e)}"
                                 logger.error(f"[ERROR] {error_msg}", exc_info=True)
-                                return error_msg
+                                socketio.emit('error', {'message': error_msg}, room=request.sid)
+                                return {'status': 'error', 'message': error_msg}
                         
                     except Exception as e:
                         error_msg = f"Unexpected error in process_question: {str(e)}"
                         logger.error(f"[CRITICAL] {error_msg}", exc_info=True)
-                        return error_msg
-                        
-                        logger.info(f"[DEBUG] Bot response length: {len(bot_response) if bot_response else 0} characters")
-                        
-                        # Save bot response
-                        logger.info("[DEBUG] Saving bot response to database...")
-                        with current_app.app_context():
-                            try:
-                                bot_msg = Message(
-                                    conversation_id=conversation_id,
-                                    content=bot_response,
-                                    is_user=False,
-                                    language=language
-                                )
-                                db.session.add(bot_msg)
-                                db.session.commit()
-                                logger.info("[DEBUG] Successfully saved bot response to database")
-                                
-                                # Emit the response
-                                response_data = {
-                                    'conversation_id': conversation_id,
-                                    'response': bot_response,
-                                    'timestamp': datetime.utcnow().isoformat()
-                                }
-                                logger.info(f"[DEBUG] Sending ask_response event with data: {response_data}")
-                                
-                                socketio.emit('ask_response', 
-                                    response_data,
-                                    room=request.sid,
-                                    callback=lambda: logger.info("[DEBUG] ask_response event emitted successfully")
-                                )
-                                logger.info("[DEBUG] ask_response event sent")
-                                
-                                
-                            except Exception as e:
-                                logger.error(f"Error in process_question db operations: {str(e)}")
-                                socketio.emit('error', {
-                                    'message': 'Error saving bot response',
-                                    'details': str(e)
-                                }, room=request.sid)
-                        
-                    except Exception as e:
-                        logger.error(f"Error processing question: {str(e)}", exc_info=True)
-                        socketio.emit('error', {
-                            'message': 'Error processing your question',
-                            'details': str(e)
-                        }, room=request.sid)
+                        socketio.emit('error', {'message': error_msg}, room=request.sid)
+                        return {'status': 'error', 'message': error_msg}
                 
-                # Process in background
+                # Start processing the question in a background task
                 socketio.start_background_task(process_question)
                 
-                # Return the conversation ID to the client
-                return {'status': 'processing', 'conversation_id': conversation_id}
+                # Immediately acknowledge the question was received and is being processed
+                return {
+                    'status': 'processing', 
+                    'conversation_id': conversation_id,
+                    'message': 'Your question is being processed.'
+                }
                 
             except Exception as e:
-                logger.error(f"Error in handle_ask (inner): {str(e)}", exc_info=True)
+                error_msg = f"Error in handle_ask (inner): {str(e)}"
+                logger.error(error_msg, exc_info=True)
                 emit('error', {
                     'message': 'Error processing your question',
                     'details': str(e)
@@ -478,7 +467,8 @@ def setup_websocket(app, chatbot):
                 return {'status': 'error', 'message': str(e)}
                 
         except Exception as e:
-            logger.error(f"Error in handle_ask (outer): {str(e)}", exc_info=True)
+            error_msg = f"Error in handle_ask (outer): {str(e)}"
+            logger.error(error_msg, exc_info=True)
             emit('error', {
                 'message': 'An unexpected error occurred',
                 'details': str(e)
@@ -609,9 +599,9 @@ if __name__ == "__main__":
     
     @app.route('/')
     def index():
-        return "WebSocket Test Server"
-    
+        return 'WebSocket Server is running!'
+        
     socketio = setup_websocket(app, dummy_chatbot)
     
-    # Run the app with socketio
-    socketio.run(app, debug=True, port=5001)
+    # Run the app with socketio on port 5000
+    socketio.run(app, debug=True, port=5000, allow_unsafe_werkzeug=True)
