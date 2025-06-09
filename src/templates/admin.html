@@ -30,11 +30,48 @@
             </div>
             <div class="admin-section">
                 <h2>Users</h2>
-                <ul id="user-list" class="admin-list">Loading users...</ul>
+                <input type="text" id="user-search" class="admin-search-bar" placeholder="Search users..." autocomplete="off" />
+                <table class="admin-table" id="user-table">
+                    <thead>
+                        <tr>
+                            <th class="sortable" data-key="id">ID</th>
+                            <th class="sortable" data-key="username">Username</th>
+                            <th class="sortable" data-key="email">Email</th>
+                            <th class="sortable" data-key="is_admin">Admin</th>
+                            <th class="sortable" data-key="is_active">Active</th>
+                            <th class="sortable" data-key="last_login">Last Login</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="user-list"><tr><td colspan="7">Loading users...</td></tr></tbody>
+                </table>
+                <div class="pagination" id="user-pagination"></div>
             </div>
             <div class="admin-section">
                 <h2>Documents</h2>
-                <ul id="document-list" class="admin-list">Loading documents...</ul>
+                <input type="text" id="document-search" class="admin-search-bar" placeholder="Search documents..." autocomplete="off" />
+                <table class="admin-table" id="document-table">
+                    <thead>
+                        <tr>
+                            <th class="sortable" data-key="id">ID</th>
+                            <th class="sortable" data-key="filename">Filename</th>
+                            <th class="sortable" data-key="owner">Owner</th>
+                            <th class="sortable" data-key="uploaded_at">Uploaded</th>
+                            <th class="sortable" data-key="size">Size</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="document-list"><tr><td colspan="6">Loading documents...</td></tr></tbody>
+                </table>
+                <div class="pagination" id="document-pagination"></div>
+            </div>
+            <div class="admin-section">
+                <h2>Analytics</h2>
+                <div id="analytics-data" class="analytics-container">Loading analytics...</div>
+                <canvas id="user-growth-chart" style="max-width: 600px; margin:2rem auto 1rem; background:#fff; border-radius:0.5rem;"></canvas>
+                <canvas id="chat-activity-chart" style="max-width: 600px; margin:2rem auto 1rem; background:#fff; border-radius:0.5rem;"></canvas>
+                <canvas id="top-users-chart" style="max-width: 600px; margin:2rem auto 1rem; background:#fff; border-radius:0.5rem;"></canvas>
+                <button id="export-analytics-btn" style="margin:1rem 0 0 0;padding:0.5rem 1.5rem;font-size:1rem;background:#1976d2;color:#fff;border:none;border-radius:0.3rem;float:right;">Export Analytics CSV</button>
             </div>
             <div class="admin-section">
                 <h2>System Info</h2>
@@ -42,10 +79,6 @@
                     <li>App Version: 1.0</li>
                     <li>Server Time: <span id="server-time">--</span></li>
                 </ul>
-            </div>
-            <div class="admin-section">
-                <h2>Analytics</h2>
-                <div id="analytics-data" class="analytics-container">Analytics coming soon...</div>
             </div>
         </main>
 
@@ -56,7 +89,18 @@
         </footer>
     </div>
 
+    <!-- Modal Dialog -->
+    <div id="modal-bg" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.25);z-index:1000;"></div>
+    <div id="modal-dialog" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;color:#222;padding:2rem 2.5rem;border-radius:0.7rem;box-shadow:0 6px 32px #2224;z-index:1001;min-width:300px;max-width:90vw;text-align:center;">
+        <div id="modal-message" style="margin-bottom:2rem;font-size:1.1rem;"></div>
+        <button id="modal-confirm" style="background:#1976d2;color:#fff;padding:0.5rem 1.5rem;border:none;border-radius:0.3rem;margin-right:0.7rem;">Confirm</button>
+        <button id="modal-cancel" style="background:#eee;color:#222;padding:0.5rem 1.5rem;border:none;border-radius:0.3rem;">Cancel</button>
+    </div>
+    <!-- Toast Notification -->
+    <div id="toast" style="display:none;position:fixed;top:1.2rem;right:1.2rem;z-index:1100;background:#1976d2;color:#fff;padding:0.85rem 2.2rem;border-radius:0.5rem;box-shadow:0 2px 12px #2222;font-size:1.05rem;transition:opacity 0.3s;opacity:0.98;"></div>
+
     <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         // Logout button
         document.addEventListener('DOMContentLoaded', function() {
@@ -64,30 +108,357 @@
                 fetch('/api/logout', { method: 'POST', credentials: 'same-origin' })
                   .then(() => window.location.href = '/login');
             });
+
+            // Pagination helper
+            function paginateTable(rows, page, perPage) {
+                const total = rows.length;
+                const start = (page - 1) * perPage;
+                const end = start + perPage;
+                return rows.slice(start, end);
+            }
+            function renderPagination(container, totalRows, perPage, currentPage, onPageChange) {
+                const totalPages = Math.ceil(totalRows / perPage);
+                if (totalPages <= 1) { container.innerHTML = ''; return; }
+                let html = '';
+                if (currentPage > 1) html += `<button class='page-btn' data-page='${currentPage-1}'>&lt; Prev</button>`;
+                for (let i = 1; i <= totalPages; i++) {
+                    html += `<button class='page-btn${i === currentPage ? ' active' : ''}' data-page='${i}'>${i}</button>`;
+                }
+                if (currentPage < totalPages) html += `<button class='page-btn' data-page='${currentPage+1}'>Next &gt;</button>`;
+                container.innerHTML = html;
+                container.querySelectorAll('.page-btn').forEach(btn => {
+                    btn.onclick = () => onPageChange(Number(btn.getAttribute('data-page')));
+                });
+            }
+            // Fetch users
+            fetch('/api/admin/users', { credentials: 'same-origin' })
+                .then(res => res.json()).then(data => {
+                    const users = data.users || [];
+                    const userList = document.getElementById('user-list');
+                    const userPagination = document.getElementById('user-pagination');
+                    let userRows = users.map(u => `
+                        <tr>
+                            <td>${u.id}</td>
+                            <td>${u.username}</td>
+                            <td>${u.email || ''}</td>
+                            <td>${u.is_admin ? '<b>✔️</b>' : ''}</td>
+                            <td>${u.is_active ? 'Yes' : 'No'}</td>
+                            <td>${u.last_login ? u.last_login.split('T')[0] : ''}</td>
+                            <td>
+                                ${u.is_admin ? `<button class="demote-btn" data-id="${u.id}">Demote</button>` : `<button class="promote-btn" data-id="${u.id}">Promote</button>`}
+                                <button class="delete-user-btn" data-id="${u.id}">Delete</button>
+                            </td>
+                        </tr>
+                    `);
+                    let userPage = 1;
+                    const userPerPage = 10;
+                    function updateUserTable() {
+                        // Filter by search
+                        const filter = document.getElementById('user-search').value.toLowerCase();
+                        let filtered = userRows.filter(row => row.toLowerCase().includes(filter));
+                        // Paginate
+                        const paged = paginateTable(filtered, userPage, userPerPage);
+                        userList.innerHTML = paged.length ? paged.join('') : `<tr><td colspan="7">No users found.</td></tr>`;
+                        renderPagination(userPagination, filtered.length, userPerPage, userPage, (pg) => { userPage = pg; updateUserTable(); });
+                    }
+                    document.getElementById('user-search').addEventListener('input', function() { userPage = 1; updateUserTable(); });
+                    updateUserTable();
+                });
+            // Fetch documents
+            fetch('/api/admin/documents', { credentials: 'same-origin' })
+                .then(res => res.json()).then(data => {
+                    const docs = data.documents || [];
+                    const docList = document.getElementById('document-list');
+                    const docPagination = document.getElementById('document-pagination');
+                    let docRows = docs.map(d => `
+                        <tr>
+                            <td>${d.id}</td>
+                            <td>${d.filename || d.name}</td>
+                            <td>${d.owner || ''}</td>
+                            <td>${d.uploaded_at ? d.uploaded_at.split('T')[0] : ''}</td>
+                            <td>${d.size || ''}</td>
+                            <td><button class="delete-doc-btn" data-id="${d.id}">Delete</button></td>
+                        </tr>
+                    `);
+                    let docPage = 1;
+                    const docPerPage = 10;
+                    function updateDocTable() {
+                        // Filter by search
+                        const filter = document.getElementById('document-search').value.toLowerCase();
+                        let filtered = docRows.filter(row => row.toLowerCase().includes(filter));
+                        // Paginate
+                        const paged = paginateTable(filtered, docPage, docPerPage);
+                        docList.innerHTML = paged.length ? paged.join('') : `<tr><td colspan="6">No documents found.</td></tr>`;
+                        renderPagination(docPagination, filtered.length, docPerPage, docPage, (pg) => { docPage = pg; updateDocTable(); });
+                    }
+                    document.getElementById('document-search').addEventListener('input', function() { docPage = 1; updateDocTable(); });
+                    updateDocTable();
+                });
+            // Fetch analytics
+            fetch('/api/admin/analytics', { credentials: 'same-origin' })
+                .then(res => res.json()).then(data => {
+                    const analytics = document.getElementById('analytics-data');
+                    if (analytics) {
+                        analytics.innerHTML = `
+                            <ul>
+                                <li>Total Users: <b>${data.users}</b></li>
+                                <li>Total Documents: <b>${data.documents}</b></li>
+                                <li>Total Conversations: <b>${data.conversations}</b></li>
+                                <li>Total Messages: <b>${data.messages}</b></li>
+                            </ul>
+                        `;
+                    }
+                    // User Growth Chart (real data)
+                    const months = Object.keys(data.user_growth);
+                    const userCounts = months.map(m => data.user_growth[m]);
+                    const ctx1 = document.getElementById('user-growth-chart').getContext('2d');
+                    new Chart(ctx1, {
+                        type: 'line',
+                        data: {
+                            labels: months,
+                            datasets: [{
+                                label: 'User Growth',
+                                data: userCounts,
+                                backgroundColor: 'rgba(25, 118, 210, 0.15)',
+                                borderColor: '#1976d2',
+                                borderWidth: 2,
+                                tension: 0.4,
+                                fill: true,
+                                pointRadius: 4
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            plugins: { legend: { display: false } },
+                            scales: { y: { beginAtZero: true } }
+                        }
+                    });
+                    // Document Growth Chart (real data)
+                    const docCounts = months.map(m => data.document_growth[m]);
+                    const ctx2 = document.getElementById('chat-activity-chart').getContext('2d');
+                    new Chart(ctx2, {
+                        type: 'line',
+                        data: {
+                            labels: months,
+                            datasets: [{
+                                label: 'Documents Uploaded',
+                                data: docCounts,
+                                backgroundColor: 'rgba(67, 160, 71, 0.15)',
+                                borderColor: '#43a047',
+                                borderWidth: 2,
+                                tension: 0.4,
+                                fill: true,
+                                pointRadius: 4
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            plugins: { legend: { display: false } },
+                            scales: { y: { beginAtZero: true } }
+                        }
+                    });
+                    // Top Users Chart
+                    if (data.top_users && data.top_users.length) {
+                        const ctx3 = document.getElementById('top-users-chart').getContext('2d');
+                        new Chart(ctx3, {
+                            type: 'bar',
+                            data: {
+                                labels: data.top_users.map(u => u.username),
+                                datasets: [{
+                                    label: 'Most Active Users',
+                                    data: data.top_users.map(u => u.message_count),
+                                    backgroundColor: '#fbc02d',
+                                    borderColor: '#f9a825',
+                                    borderWidth: 1
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                plugins: { legend: { display: false } },
+                                scales: { y: { beginAtZero: true } }
+                            }
+                        });
+                    }
+                    // Export analytics as CSV
+                    document.getElementById('export-analytics-btn').onclick = function() {
+                        const csv = [
+                            ['Metric','Value'],
+                            ['Total Users',data.users],
+                            ['Total Documents',data.documents],
+                            ['Total Conversations',data.conversations],
+                            ['Total Messages',data.messages]
+                        ];
+                        csv.push(['']);
+                        csv.push(['Month','New Users','New Documents']);
+                        months.forEach((m,i) => csv.push([m,userCounts[i],docCounts[i]]));
+                        let csvStr = csv.map(row => row.join(',')).join('\n');
+                        const blob = new Blob([csvStr], {type:'text/csv'});
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url; a.download = 'analytics.csv'; a.click();
+                        URL.revokeObjectURL(url);
+                    };
+                });
+            // Server time
+            document.getElementById('server-time').textContent = new Date().toLocaleString();
+
+            // Toast utility
+            function showToast(msg, color) {
+                const toast = document.getElementById('toast');
+                toast.textContent = msg;
+                toast.style.background = color || '#1976d2';
+                toast.style.display = 'block';
+                toast.style.opacity = '0.98';
+                setTimeout(() => { toast.style.opacity = '0'; }, 2200);
+                setTimeout(() => { toast.style.display = 'none'; }, 2500);
+            }
+            // Modal utility
+            function showModal(message, onConfirm) {
+                document.getElementById('modal-message').textContent = message;
+                document.getElementById('modal-bg').style.display = 'block';
+                document.getElementById('modal-dialog').style.display = 'block';
+                const cleanup = () => {
+                    document.getElementById('modal-bg').style.display = 'none';
+                    document.getElementById('modal-dialog').style.display = 'none';
+                };
+                document.getElementById('modal-cancel').onclick = cleanup;
+                document.getElementById('modal-bg').onclick = cleanup;
+                document.getElementById('modal-confirm').onclick = () => {
+                    cleanup();
+                    if (onConfirm) onConfirm();
+                };
+            }
+            // Row click handlers for details modal
+            document.getElementById('user-list').addEventListener('click', function(e) {
+                // Show user details on row click (not action buttons)
+                let tr = e.target.closest('tr');
+                if (tr && tr.dataset && tr.dataset.user) {
+                    try {
+                        const user = JSON.parse(tr.dataset.user);
+                        let html = `<b>User Details</b><br><br>`;
+                        html += `<b>Username:</b> ${user.username}<br>`;
+                        html += `<b>Email:</b> ${user.email}<br>`;
+                        html += `<b>Admin:</b> ${user.is_admin ? 'Yes' : 'No'}<br>`;
+                        html += `<b>Active:</b> ${user.is_active ? 'Yes' : 'No'}<br>`;
+                        html += `<b>Preferred Language:</b> ${user.preferred_language || '-'}<br>`;
+                        html += `<b>Created:</b> ${user.created_at ? new Date(user.created_at).toLocaleString() : '-'}<br>`;
+                        html += `<b>Last Login:</b> ${user.last_login ? new Date(user.last_login).toLocaleString() : '-'}<br>`;
+                        showModal(html);
+                        return;
+                    } catch (err) {}
+                }
+                // Action buttons
+                if (e.target.classList.contains('promote-btn')) {
+                    const id = e.target.getAttribute('data-id');
+                    showModal('Promote this user to admin?', () => {
+                        fetch(`/api/admin/user/${id}/promote`, { method: 'POST', credentials: 'same-origin' })
+                            .then(res => res.json()).then(resp => {
+                                if (resp.success) showToast('User promoted to admin!','#43a047');
+                                else showToast(resp.error||'Failed to promote user','#e53935');
+                                setTimeout(() => location.reload(), 900);
+                            });
+                    });
+                }
+                if (e.target.classList.contains('demote-btn')) {
+                    const id = e.target.getAttribute('data-id');
+                    showModal('Demote this admin user?', () => {
+                        fetch(`/api/admin/user/${id}/demote`, { method: 'POST', credentials: 'same-origin' })
+                            .then(res => res.json()).then(resp => {
+                                if (resp.success) showToast('User demoted from admin','#fbc02d');
+                                else showToast(resp.error||'Failed to demote user','#e53935');
+                                setTimeout(() => location.reload(), 900);
+                            });
+                    });
+                }
+                if (e.target.classList.contains('delete-user-btn')) {
+                    const id = e.target.getAttribute('data-id');
+                    showModal('Delete this user? This cannot be undone.', () => {
+                        fetch(`/api/admin/user/${id}/delete`, { method: 'DELETE', credentials: 'same-origin' })
+                            .then(res => res.json()).then(resp => {
+                                if (resp.success) showToast('User deleted','#e53935');
+                                else showToast(resp.error||'Failed to delete user','#e53935');
+                                setTimeout(() => location.reload(), 900);
+                            });
+                    });
+                }
+            });
+            document.getElementById('document-list').addEventListener('click', function(e) {
+                // Show document details on row click (not action buttons)
+                let tr = e.target.closest('tr');
+                if (tr && tr.dataset && tr.dataset.doc) {
+                    try {
+                        const doc = JSON.parse(tr.dataset.doc);
+                        let html = `<b>Document Details</b><br><br>`;
+                        html += `<b>Filename:</b> ${doc.filename}<br>`;
+                        html += `<b>Owner:</b> ${doc.owner || '-'}<br>`;
+                        html += `<b>Size:</b> ${doc.size ? doc.size + ' bytes' : '-'}<br>`;
+                        html += `<b>Uploaded:</b> ${doc.uploaded_at ? new Date(doc.uploaded_at).toLocaleString() : '-'}<br>`;
+                        showModal(html);
+                        return;
+                    } catch (err) {}
+                }
+                if (e.target.classList.contains('delete-doc-btn')) {
+                    const id = e.target.getAttribute('data-id');
+                    showModal('Delete this document? This cannot be undone.', () => {
+                        fetch(`/api/admin/document/${id}/delete`, { method: 'DELETE', credentials: 'same-origin' })
+                            .then(res => res.json()).then(resp => {
+                                if (resp.success) showToast('Document deleted','#e53935');
+                                else showToast(resp.error||'Failed to delete document','#e53935');
+                                setTimeout(() => location.reload(), 900);
+                            });
+                    });
+                }
+            });
+            // Table sorting logic
+            function makeTableSortable(tableId, rowSelector, colDefs) {
+                const table = document.getElementById(tableId);
+                if (!table) return;
+                const thead = table.querySelector('thead');
+                const tbody = table.querySelector('tbody');
+                let sortCol = null;
+                let sortAsc = true;
+                thead.querySelectorAll('th.sortable').forEach((th, idx) => {
+                    th.style.cursor = 'pointer';
+                    th.addEventListener('click', function() {
+                        // Remove sort indicators from all
+                        thead.querySelectorAll('th.sortable').forEach(h => {
+                            h.innerHTML = h.textContent;
+                        });
+                        // Toggle sort direction
+                        if (sortCol === idx) sortAsc = !sortAsc;
+                        else sortAsc = true;
+                        sortCol = idx;
+                        // Add indicator
+                        th.innerHTML = th.textContent + (sortAsc ? ' ▲' : ' ▼');
+                        // Sort rows
+                        const rows = Array.from(tbody.querySelectorAll(rowSelector));
+                        rows.sort((a, b) => {
+                            const key = th.getAttribute('data-key');
+                            let va = a.children[idx].textContent.trim().toLowerCase();
+                            let vb = b.children[idx].textContent.trim().toLowerCase();
+                            // Numeric sort if possible
+                            if (colDefs[key] === 'number') {
+                                va = parseFloat(va) || 0;
+                                vb = parseFloat(vb) || 0;
+                            }
+                            if (va < vb) return sortAsc ? -1 : 1;
+                            if (va > vb) return sortAsc ? 1 : -1;
+                            return 0;
+                        });
+                        rows.forEach(r => tbody.appendChild(r));
+                    });
+                });
+            }
+            // After data loads, add sorting
+            setTimeout(() => {
+                makeTableSortable('user-table', 'tr', {
+                    id: 'number', username: 'string', email: 'string', is_admin: 'string', is_active: 'string', last_login: 'string'
+                });
+                makeTableSortable('document-table', 'tr', {
+                    id: 'number', filename: 'string', owner: 'string', uploaded_at: 'string', size: 'number'
+                });
+            }, 800);
         });
-    </script>
-    <script>
-    // Placeholder: Fetch and render admin data
-    document.addEventListener('DOMContentLoaded', function() {
-        // Fetch users
-        fetch('/api/admin/users', { credentials: 'same-origin' })
-            .then(res => res.json()).then(data => {
-                const users = data.users || [];
-                const userList = document.getElementById('user-list');
-                if (userList) {
-                    userList.innerHTML = users.map(u => `<li>${u.username} (${u.email || ''})${u.is_admin ? ' <b>[admin]</b>' : ''}</li>`).join('');
-                }
-            });
-        // Fetch documents
-        fetch('/api/documents/list', { credentials: 'same-origin' })
-            .then(res => res.json()).then(data => {
-                const docs = data.documents || data || [];
-                const docList = document.getElementById('document-list');
-                if (docList) {
-                    docList.innerHTML = docs.map(d => `<li>${d.filename || d.name}</li>`).join('');
-                }
-            });
-    });
     </script>
 </body>
 </html>

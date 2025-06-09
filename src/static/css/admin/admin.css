@@ -1,6 +1,129 @@
-.analytics-container {
-    padding: 1rem;
+/* Modern Admin Table Styles */
+.admin-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 2rem;
+    background: var(--bg-secondary, #fff);
+    box-shadow: 0 2px 6px var(--shadow-color, #eee);
+    border-radius: 0.5rem;
+    overflow: hidden;
+    font-size: 1rem;
 }
+.admin-table th, .admin-table td {
+    padding: 0.75rem 1rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color, #e0e0e0);
+}
+.admin-table th {
+    position: sticky;
+    top: 0;
+    background: var(--bg-secondary, #f8f9fa);
+    z-index: 2;
+    font-weight: 600;
+    color: var(--primary-color, #1a237e);
+}
+.admin-table tr:nth-child(even) {
+    background: var(--bg-color, #f4f6fb);
+}
+.admin-table tr:hover {
+    background: var(--hover-bg, #e3e9f7);
+    transition: background 0.2s;
+}
+
+/* Action buttons */
+.admin-table button {
+    margin: 0 0.25rem;
+    padding: 0.35rem 0.8rem;
+    border: none;
+    border-radius: 0.3rem;
+    background: var(--primary-color, #1976d2);
+    color: #fff;
+    cursor: pointer;
+    font-size: 0.95em;
+    transition: background 0.2s, box-shadow 0.2s;
+}
+.admin-table button.demote-btn {
+    background: #fbc02d;
+    color: #222;
+}
+.admin-table button.promote-btn {
+    background: #43a047;
+}
+.admin-table button.delete-user-btn, .admin-table button.delete-doc-btn {
+    background: #e53935;
+}
+.admin-table button:hover {
+    filter: brightness(1.1);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+/* Search bar */
+.admin-search-bar {
+    width: 100%;
+    max-width: 320px;
+    padding: 0.5rem 1rem;
+    margin-bottom: 1rem;
+    border: 1px solid var(--border-color, #cfd8dc);
+    border-radius: 0.35rem;
+    font-size: 1rem;
+    background: var(--bg-color, #f8f9fa);
+}
+
+/* Responsive table */
+@media (max-width: 900px) {
+    .admin-table th, .admin-table td {
+        padding: 0.5rem 0.4rem;
+        font-size: 0.95em;
+    }
+}
+@media (max-width: 650px) {
+    .admin-table, .admin-table thead, .admin-table tbody, .admin-table th, .admin-table td, .admin-table tr {
+        display: block;
+    }
+    .admin-table thead {
+        display: none;
+    }
+    .admin-table tr {
+        margin-bottom: 1rem;
+        border-radius: 0.5rem;
+        box-shadow: 0 1px 3px #e0e0e0;
+    }
+    .admin-table td {
+        padding: 0.7rem 1rem;
+        border: none;
+        position: relative;
+        text-align: right;
+    }
+    .admin-table td:before {
+        content: attr(data-label);
+        position: absolute;
+        left: 1rem;
+        top: 0.7rem;
+        font-weight: bold;
+        text-align: left;
+        color: #888;
+    }
+}
+
+/* Dark mode support */
+[data-theme="dark"] .admin-table {
+    background: #23272e;
+    color: #f3f6fa;
+}
+[data-theme="dark"] .admin-table th {
+    background: #23272e;
+    color: #6fa8dc;
+}
+[data-theme="dark"] .admin-table tr:nth-child(even) {
+    background: #1b1f23;
+}
+[data-theme="dark"] .admin-table tr:hover {
+    background: #2c3642;
+}
+[data-theme="dark"] .admin-table button {
+    color: #fff;
+}
+
 
 .analytics-summary {
     display: flex;
