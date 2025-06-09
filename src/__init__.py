@@ -11,8 +11,10 @@ def create_app():
     login_manager.init_app(app)
     login_manager.login_view = 'main.index'
 
-    # Register blueprint
+    # Register blueprints
     app.register_blueprint(main_bp)
+    from src.api import api_bp
+    app.register_blueprint(api_bp, url_prefix='/api')
 
     return app
 

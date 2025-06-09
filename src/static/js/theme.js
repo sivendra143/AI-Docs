@@ -34,12 +34,13 @@ document.addEventListener('DOMContentLoaded', function() {
         const lightIcon = themeToggleBtn.querySelector('.light-icon');
         const darkIcon = themeToggleBtn.querySelector('.dark-icon');
         
+        // Show the icon for the theme you can switch to
         if (theme === 'dark') {
-            lightIcon.style.display = 'inline';
+            lightIcon.style.display = 'inline';  // ☀️ sun to switch to light
             darkIcon.style.display = 'none';
         } else {
             lightIcon.style.display = 'none';
-            darkIcon.style.display = 'inline';
+            darkIcon.style.display = 'inline';  // 🌙 moon to switch to dark
         }
     }
     

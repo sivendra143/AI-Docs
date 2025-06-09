@@ -72,11 +72,15 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Add a user message to the chat
-    window.addUserMessage = function(text) {
+    window.addUserMessage = function(text, lang = 'EN') {
         const messageDiv = document.createElement('div');
         messageDiv.className = 'message user';
         messageDiv.innerHTML = `
-            <div class="message-avatar user-avatar">🧑</div>
+            <div class="message-meta">
+                <span class="message-avatar user-avatar">🧑</span>
+                <span class="message-label">You</span>
+                <span class="message-lang">${lang}</span>
+            </div>
             <div class="message-content">
                 <p>${escapeHtml(text)}</p>
             </div>
@@ -86,7 +90,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Add a bot message to the chat
-    window.addBotMessage = function(text) {
+    window.addBotMessage = function(text, lang = 'HI') {
         const typingIndicator = document.querySelector('.typing-indicator');
         if (typingIndicator) {
             typingIndicator.remove();
@@ -101,13 +105,96 @@ document.addEventListener('DOMContentLoaded', function() {
         const messageDiv = document.createElement('div');
         messageDiv.className = 'message bot';
         messageDiv.innerHTML = `
-            <div class="message-avatar bot-avatar">🤖</div>
+            <div class="message-meta">
+                <span class="message-avatar bot-avatar">🤖</span>
+                <span class="message-label">PDF Assistant</span>
+                <span class="message-lang">${lang}</span>
+            </div>
             <div class="message-content">
                 <p>${escapeHtml(text).replace(/\n/g, '<br>')}</p>
+                <div style="margin-top:0.6em; display:flex; align-items:center; gap:0.5em;">
+                  <button class="translate-btn" style="background:linear-gradient(90deg,#6366f1 60%,#43a047 100%); color:#fff; border:none; border-radius:0.7em; padding:0.2em 0.9em; font-size:0.89em; cursor:pointer; box-shadow:0 1px 4px #6366f122;">Translate</button>
+                  <select class="translate-lang" style="border-radius:0.7em; padding:0.15em 0.7em; font-size:0.92em; border:1px solid #e0e0e0;"></select>
+                </div>
+                <div class="translated-text" style="display:none; margin-top:0.5em;"></div>
             </div>
         `;
         chatMessages.appendChild(messageDiv);
         messageDiv.classList.add('fade-in');
+        // Translate button logic
+        const translateBtn = messageDiv.querySelector('.translate-btn');
+        const translateLang = messageDiv.querySelector('.translate-lang');
+        const translatedDiv = messageDiv.querySelector('.translated-text');
+        // Language options
+        const langOptions = [
+            {value: 'en', label: '🇺🇸 English'},
+            {value: 'hi', label: '🇮🇳 Hindi'},
+            {value: 'es', label: '🇪🇸 Spanish'},
+            {value: 'fr', label: '🇫🇷 French'},
+            {value: 'de', label: '🇩🇪 German'},
+            {value: 'zh', label: '🇨🇳 Chinese'},
+            {value: 'ja', label: '🇯🇵 Japanese'},
+            {value: 'ru', label: '🇷🇺 Russian'},
+            {value: 'it', label: '🇮🇹 Italian'},
+            {value: 'pt', label: '🇵🇹 Portuguese'},
+            {value: 'ar', label: '🇸🇦 Arabic'},
+            {value: 'ko', label: '🇰🇷 Korean'},
+            {value: 'tr', label: '🇹🇷 Turkish'},
+            {value: 'nl', label: '🇳🇱 Dutch'},
+            {value: 'el', label: '🇬🇷 Greek'},
+            {value: 'id', label: '🇮🇩 Indonesian'},
+            {value: 'vi', label: '🇻🇳 Vietnamese'},
+            {value: 'th', label: '🇹🇭 Thai'},
+            {value: 'pl', label: '🇵🇱 Polish'},
+            {value: 'sv', label: '🇸🇪 Swedish'}
+        ];
+        // Get last used language or default
+        const lastLang = localStorage.getItem('last_translate_lang') || 'en';
+        langOptions.forEach(opt => {
+            const o = document.createElement('option');
+            o.value = opt.value;
+            o.textContent = opt.label;
+            if (opt.value === lastLang) o.selected = true;
+            translateLang.appendChild(o);
+        });
+        translateLang.addEventListener('change', function() {
+            localStorage.setItem('last_translate_lang', this.value);
+        });
+        translateBtn.addEventListener('click', function() {
+            translateBtn.disabled = true;
+            translateBtn.textContent = 'Translating...';
+            const targetLang = translateLang.value;
+            // Use local backend translation proxy for reliability
+            fetch('/api/translate', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ text: text, target: targetLang })
+            })
+            .then(res => res.json())
+            .then(data => {
+              if (data && data.translatedText) {
+                translatedDiv.innerHTML = `<span class='message-label' style='color:#388e3c;'>${escapeHtml(data.translatedText)}</span>`;
+                translatedDiv.style.display = 'block';
+              } else {
+                throw new Error('Translation failed');
+              }
+              translateBtn.disabled = false;
+              translateBtn.textContent = 'Translate';
+              translateLang.disabled = false;
+            })
+            .catch(async () => {
+                const googleUrl = `https://translate.google.com/?sl=auto&tl=${targetLang}&text=${encodeURIComponent(text)}&op=translate`;
+                translatedDiv.innerHTML = `
+                  <span class='message-label' style='color:#e53935;'>🌐 AI Translation unavailable</span><br>
+                  <span style='color:#555; font-size:0.97em;'>This feature uses advanced AI for instant multilingual support, but the translation service is currently unreachable. Please try again later, or use the link below:</span><br>
+                  <a href='${googleUrl}' target='_blank' style='color:#1976d2; text-decoration:underline; font-size:0.98em;'>Translate with Google</a>
+                `;
+                translatedDiv.style.display = 'block';
+                translateBtn.disabled = false;
+                translateBtn.textContent = 'Translate';
+                translateLang.disabled = false;
+            });
+        });
         scrollToBottom();
     }
 
@@ -177,8 +264,9 @@ document.addEventListener('DOMContentLoaded', function() {
         // Show typing indicator
         showTypingIndicator();
         
-        // Send question via WebSocket
-        socket.emit('ask', { question });
+        // Determine selected documents
+        let docs = window.selectedDocuments && window.selectedDocuments.length > 0 ? window.selectedDocuments : undefined;
+        socket.emit('ask', { question, documents: docs });
         
         statusIndicator.textContent = 'Processing...';
     });

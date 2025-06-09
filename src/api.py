@@ -10,7 +10,8 @@ from functools import wraps
 from flask_login import current_user, login_required
 from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle, TA_LEFT, TA_RIGHT
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.enums import TA_LEFT, TA_RIGHT, TA_CENTER
 from reportlab.lib import colors
 from reportlab.lib.units import inch
 from io import BytesIO
@@ -19,6 +20,7 @@ from src.models import User, Conversation, Message
 from src.conversation_manager import ConversationManager
 from werkzeug.security import generate_password_hash, check_password_hash
 from typing import Dict, Any, Optional, List, Tuple
+from PyPDF2 import PdfReader
 
 # Create a Blueprint for API routes
 api_bp = Blueprint('api', __name__)
@@ -403,6 +405,7 @@ def _export_pdf(conversation: Conversation, messages: List[Message]) -> Any:
     from reportlab.lib.pagesizes import letter
     from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.enums import TA_LEFT, TA_RIGHT, TA_CENTER
     from reportlab.lib import colors
     from reportlab.lib.units import inch
     
@@ -503,6 +506,60 @@ def _export_pdf(conversation: Conversation, messages: List[Message]) -> Any:
     response.headers['Content-Type'] = 'application/pdf'
     response.headers['Content-Disposition'] = f'attachment; filename=conversation_{conversation.id}.pdf'
     return response
+
+# Document preview endpoint
+
+# Google Translate web-scraping fallback endpoint
+@api_bp.route('/translate', methods=['POST'])
+def google_translate_web():
+    """Translate text using Google Translate web as a fallback (for local/dev use only)."""
+    import requests
+    import re
+    data = request.json
+    text = data.get('text')
+    target = data.get('target')
+    if not text or not target:
+        return jsonify({'error': 'Missing text or target'}), 400
+    try:
+        # Google Translate web endpoint (unofficial, for dev use only)
+        params = {
+            'sl': 'auto',
+            'tl': target,
+            'q': text,
+        }
+        headers = {
+            'User-Agent': 'Mozilla/5.0',
+        }
+        resp = requests.get('https://translate.googleapis.com/translate_a/single?client=gtx&dt=t&sl=auto&tl=' + target + '&q=' + requests.utils.quote(text), headers=headers)
+        if resp.status_code == 200:
+            # The response is a nested list, first element is translated text
+            translated = resp.json()[0][0][0]
+            return jsonify({'translatedText': translated})
+        else:
+            return jsonify({'error': 'Translation failed', 'status': resp.status_code}), 500
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@api_bp.route('/document/preview/<filename>', methods=['GET'])
+def get_document_preview(filename):
+    """Get first page preview of a document"""
+    try:
+        # Safe path join
+        file_path = os.path.join(current_app.config['DOCUMENTS_FOLDER'], filename)
+        if not os.path.exists(file_path):
+            return jsonify({'error': 'File not found'}), 404
+            
+        # Extract first page text
+        loader = PdfReader(file_path)
+        pages = loader.pages
+        first_page = pages[0].extract_text() if len(pages) > 0 else ""
+        
+        # Return first 200 characters
+        return jsonify({
+            'preview': first_page[:200] + ('...' if len(first_page) > 200 else '')
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 # Search endpoint
 @api_bp.route('/search', methods=['GET'])
