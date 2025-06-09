@@ -2,7 +2,7 @@
 
 let mediaRecorder;
 let audioChunks = [];
-let isRecording = false;
+let isRecording = false; // Ensure mediaRecorder is declared only once in the file
 
 document.addEventListener('DOMContentLoaded', function() {
     const startRecordingBtn = document.getElementById('start-recording');

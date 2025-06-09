@@ -22,7 +22,8 @@ document.addEventListener('DOMContentLoaded', function() {
         statusIndicator.textContent = 'Disconnected';
     });
     
-    socket.on('answer', function(data) {
+    socket.on('ask_response', function(data) {
+        console.log('Received bot response:', data);
         // Remove typing indicator
         const typingIndicator = document.querySelector('.typing-indicator');
         if (typingIndicator) {
@@ -30,7 +31,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         // Add bot response
-        addBotMessage(data.answer);
+        addBotMessage(data.response);
         
         // Display suggestions
         displaySuggestions(data.suggestions);
@@ -88,6 +89,12 @@ document.addEventListener('DOMContentLoaded', function() {
         const typingIndicator = document.querySelector('.typing-indicator');
         if (typingIndicator) {
             typingIndicator.remove();
+        }
+
+        // Ensure text is always a string and provide fallback for empty responses
+        text = (typeof text === 'string') ? text : (text ? String(text) : '');
+        if (!text.trim()) {
+            text = '[No response from assistant]';
         }
 
         const messageDiv = document.createElement('div');

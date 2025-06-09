@@ -7,10 +7,10 @@ if __name__ == '__main__':
     os.environ['FLASK_DEBUG'] = '1'
     
     # Create and run the app
-    app = setup_app()
+    socketio, app = setup_app()
     
     # Run the app
-    if hasattr(app, 'run'):
-        app.run(host='0.0.0.0', port=5001, debug=True)
+    if socketio:
+        socketio.run(app, host='0.0.0.0', port=5000, debug=True)
     else:
-        print("Error: Could not start the application")
+        app.run(host='0.0.0.0', port=5000, debug=True)

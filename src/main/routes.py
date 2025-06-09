@@ -1,11 +1,15 @@
-﻿from flask import Blueprint, render_template, jsonify, request
+from flask import Blueprint, render_template, jsonify, request
 from src.services.chat_service import get_chat_response
 
 main_bp = Blueprint('main', __name__)
 
+from flask_login import current_user
+
 @main_bp.route('/')
 def index():
-    return render_template('chat.html')
+    if not current_user.is_authenticated:
+        return render_template('login.html')
+    return render_template('index.html')
 
 @main_bp.route('/api/chat', methods=['POST'])
 def chat():

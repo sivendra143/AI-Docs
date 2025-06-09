@@ -14,8 +14,9 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle, TA_LEFT, T
 from reportlab.lib import colors
 from reportlab.lib.units import inch
 from io import BytesIO
-from models import db, User, Conversation, Message
-from conversation_manager import ConversationManager
+from src.extensions import db
+from src.models import User, Conversation, Message
+from src.conversation_manager import ConversationManager
 from werkzeug.security import generate_password_hash, check_password_hash
 from typing import Dict, Any, Optional, List, Tuple
 
@@ -55,6 +56,33 @@ def internal_error(error):
 @api_bp.errorhandler(400)
 def bad_request(error):
     return jsonify({'error': 'Bad request', 'code': 'BAD_REQUEST'}), 400
+
+# Login route
+from flask_login import login_user
+
+@api_bp.route('/login', methods=['POST'])
+def login():
+    data = request.get_json()
+    username = data.get('username')
+    password = data.get('password')
+    if not username or not password:
+        return jsonify({'error': 'Missing username or password'}), 400
+    user = User.query.filter_by(username=username).first()
+    if user and check_password_hash(user.password, password):
+        login_user(user)
+        return jsonify({'success': True, 'message': 'Login successful'}), 200
+    return jsonify({'error': 'Invalid username or password'}), 401
+
+# Refresh documents endpoint
+import glob
+
+@api_bp.route('/refresh', methods=['GET'])
+def refresh_documents():
+    docs_folder = 'docs'
+    pdf_files = []
+    for file in glob.glob(f'{docs_folder}/*.pdf'):
+        pdf_files.append(os.path.basename(file))
+    return jsonify({'documents': pdf_files, 'status': 'success'})
 
 # User routes
 @api_bp.route('/users/me', methods=['GET'])

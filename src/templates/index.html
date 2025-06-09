@@ -76,29 +76,7 @@
     <script src="{{ url_for('static', filename='js/voice/voice.js') }}"></script>
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
     <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Initialize Socket.IO
-            const socket = io();
-            
-            socket.on('connect', function() {
-                console.log('Connected to server');
-            });
-            
-            socket.on('answer', function(data) {
-                // Remove typing indicator
-                const typingIndicator = document.querySelector('.typing-indicator');
-                if (typingIndicator) {
-                    typingIndicator.remove();
-                }
-                
-                // Add bot response
-                addBotMessage(data.answer);
-                
-                // Display suggestions
-                displaySuggestions(data.suggestions);
-                
-                document.getElementById('status-indicator').textContent = 'Ready';
+    <!-- All chat logic is handled in script.js -->
             });
             
             // Override the form submission to use WebSockets
@@ -147,6 +125,11 @@
             }
         });
     </script>
+    <!-- Only keep external script includes -->
+    <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/voice/voice.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+    <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
 </body>
 </html>
 

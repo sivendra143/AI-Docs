@@ -346,110 +346,97 @@ def setup_websocket(app, chatbot):
                 logger.info(f"Saved user question to conversation {conversation_id}")
                 
                 # Define the background task for processing the question
-                def process_question():
+                sid = request.sid  # Capture the session ID
+                def process_question(sid):
                     import time
-                    start_time = time.time()
-                    
-                    try:
-                        logger.info(f"[DEBUG] Starting to process question in conversation {conversation_id}")
-                        
-                        # Get conversation history for context
+                    from src import create_app
+                    app = create_app()
+                    with app.app_context():
+                        start_time = time.time()
                         try:
-                            history_messages = Message.query.filter_by(
-                                conversation_id=conversation_id,
-                                is_user=True
-                            ).order_by(Message.created_at.desc()).limit(5).all()
-                            logger.info(f"[DEBUG] Retrieved {len(history_messages)} history messages")
-                            
-                            # Format conversation history (oldest first)
-                            conversation_history = [
-                                {
-                                    'content': msg.content,
-                                    'is_user': msg.is_user,
-                                    'created_at': msg.created_at.isoformat()
-                                }
-                                for msg in reversed(history_messages)
-                            ]
-                        except Exception as e:
-                            logger.error(f"[ERROR] Error getting conversation history: {str(e)}", exc_info=True)
-                            conversation_history = []
-                        
-                        # Get response from chatbot with timeout
-                        from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
-                        
-                        def get_chatbot_response():
-                            return chatbot.ask_question(
-                                question=question,
-                                language=language,
-                                conversation_history=conversation_history
-                            )
-                        
-                        # Run with timeout
-                        with ThreadPoolExecutor(max_workers=1) as executor:
-                            future = executor.submit(get_chatbot_response)
+                            logger.info(f"[DEBUG] Starting to process question in conversation {conversation_id}")
+                            # Get conversation history for context
                             try:
-                                bot_response = future.result(timeout=45)  # 45 second timeout
-                                logger.info(f"[DEBUG] Successfully got bot response in {time.time() - start_time:.2f} seconds")
-                                
-                                if not bot_response:
-                                    logger.warning("[WARNING] Empty response from chatbot.get_response")
-                                    bot_response = "I'm sorry, I couldn't generate a response. Please try again."
-                                
-                                # Save bot response
-                                logger.info("[DEBUG] Saving bot response to database...")
-                                try:
-                                    bot_msg = Message(
-                                        conversation_id=conversation_id,
-                                        content=bot_response,
-                                        is_user=False,
-                                        language=language
-                                    )
-                                    db.session.add(bot_msg)
-                                    db.session.commit()
-                                    logger.info("[DEBUG] Successfully saved bot response to database")
-                                    
-                                    # Prepare response data
-                                    response_data = {
-                                        'conversation_id': conversation_id,
-                                        'response': bot_response,
-                                        'timestamp': datetime.utcnow().isoformat(),
-                                        'status': 'success'
+                                history_messages = Message.query.filter_by(
+                                    conversation_id=conversation_id,
+                                    is_user=True
+                                ).order_by(Message.created_at.desc()).limit(5).all()
+                                logger.info(f"[DEBUG] Retrieved {len(history_messages)} history messages")
+                                conversation_history = [
+                                    {
+                                        'content': msg.content,
+                                        'is_user': msg.is_user,
+                                        'created_at': msg.created_at.isoformat()
                                     }
-                                    
-                                    # Emit the response
-                                    logger.info(f"[DEBUG] Sending ask_response event with data: {response_data}")
-                                    socketio.emit('ask_response', response_data, room=request.sid)
-                                    logger.info("[DEBUG] ask_response event sent")
-                                    
-                                    return response_data
-                                    
-                                except Exception as e:
-                                    error_msg = f"Error saving bot response: {str(e)}"
-                                    logger.error(f"[ERROR] {error_msg}", exc_info=True)
-                                    socketio.emit('error', {'message': error_msg}, room=request.sid)
-                                    return {'status': 'error', 'message': error_msg}
-                                
-                            except FutureTimeoutError:
-                                error_msg = "The request timed out. Please try again with a different question."
-                                logger.error(f"[ERROR] {error_msg}")
-                                socketio.emit('error', {'message': error_msg}, room=request.sid)
-                                return {'status': 'error', 'message': error_msg}
-                                
+                                    for msg in reversed(history_messages)
+                                ]
                             except Exception as e:
-                                error_msg = f"Error getting response from chatbot: {str(e)}"
-                                logger.error(f"[ERROR] {error_msg}", exc_info=True)
-                                socketio.emit('error', {'message': error_msg}, room=request.sid)
-                                return {'status': 'error', 'message': error_msg}
-                        
-                    except Exception as e:
-                        error_msg = f"Unexpected error in process_question: {str(e)}"
-                        logger.error(f"[CRITICAL] {error_msg}", exc_info=True)
-                        socketio.emit('error', {'message': error_msg}, room=request.sid)
-                        return {'status': 'error', 'message': error_msg}
-                
+                                logger.error(f"[ERROR] Error getting conversation history: {str(e)}", exc_info=True)
+                                conversation_history = []
+                            # Get response from chatbot with timeout
+                            from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
+                            def get_chatbot_response():
+                                if chatbot is None:
+                                    logger.error("[ERROR] Chatbot instance is None! Cannot answer question.")
+                                    return "Chatbot is not initialized."
+                                return chatbot.ask_question(
+                                    question=question,
+                                    language=language,
+                                    conversation_history=conversation_history
+                                )
+                            with ThreadPoolExecutor(max_workers=1) as executor:
+                                future = executor.submit(get_chatbot_response)
+                                try:
+                                    bot_response = future.result(timeout=45)  # 45 second timeout
+                                    logger.info(f"[DEBUG] Successfully got bot response in {time.time() - start_time:.2f} seconds")
+                                    if not bot_response or not str(bot_response).strip():
+                                        logger.warning("[WARNING] Empty or whitespace-only response from chatbot.get_response")
+                                        bot_response = "I'm sorry, I couldn't generate a response. Please try again."
+                                    # Save bot response
+                                    logger.info("[DEBUG] Saving bot response to database...")
+                                    try:
+                                        bot_msg = Message(
+                                            conversation_id=conversation_id,
+                                            content=bot_response,
+                                            is_user=False,
+                                            language=language
+                                        )
+                                        db.session.add(bot_msg)
+                                        db.session.commit()
+                                        logger.info("[DEBUG] Successfully saved bot response to database")
+                                        response_data = {
+                                            'conversation_id': conversation_id,
+                                            'response': bot_response,
+                                            'timestamp': datetime.utcnow().isoformat(),
+                                            'status': 'success'
+                                        }
+                                        logger.info(f"[DEBUG] Sending ask_response event with data: {response_data}")
+                                        print(f"[DEBUG] Emitting to frontend: {response_data}")
+                                        socketio.emit('ask_response', response_data, room=sid)
+                                        logger.info("[DEBUG] ask_response event sent")
+                                        return response_data
+                                    except Exception as e:
+                                        error_msg = f"Error saving bot response: {str(e)}"
+                                        logger.error(f"[ERROR] {error_msg}", exc_info=True)
+                                        socketio.emit('error', {'message': error_msg}, room=sid)
+                                        return {'status': 'error', 'message': error_msg}
+                                except FutureTimeoutError:
+                                    error_msg = "The request timed out. Please try again with a different question."
+                                    logger.error(f"[ERROR] {error_msg}")
+                                    socketio.emit('error', {'message': error_msg}, room=sid)
+                                    return {'status': 'error', 'message': error_msg}
+                                except Exception as e:
+                                    error_msg = f"Error getting response from chatbot: {str(e)}"
+                                    logger.error(f"[ERROR] {error_msg}", exc_info=True)
+                                    socketio.emit('error', {'message': error_msg}, room=sid)
+                                    return {'status': 'error', 'message': error_msg}
+                        except Exception as e:
+                            error_msg = f"Unexpected error in process_question: {str(e)}"
+                            logger.error(f"[CRITICAL] {error_msg}", exc_info=True)
+                            socketio.emit('error', {'message': error_msg}, room=sid)
+                            return {'status': 'error', 'message': error_msg}
                 # Start processing the question in a background task
-                socketio.start_background_task(process_question)
-                
+                socketio.start_background_task(process_question, sid)
                 # Immediately acknowledge the question was received and is being processed
                 return {
                     'status': 'processing', 

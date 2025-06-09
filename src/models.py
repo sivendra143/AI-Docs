@@ -1,7 +1,7 @@
 from datetime import datetime
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
-from . import db
+from src.extensions import db
 
 class User(UserMixin, db.Model):
     __tablename__ = 'users'
@@ -32,6 +32,10 @@ class User(UserMixin, db.Model):
     def __repr__(self):
         return f'<User {self.username}>'
 
+from src.extensions import login_manager
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
 
 class Conversation(db.Model):
     __tablename__ = 'conversations'

@@ -11,18 +11,18 @@ from flask_cors import CORS
 # Add parent directory to path for local execution
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-try:
-    from . import create_app, db
-    from .models import User, Conversation, Message
-except ImportError:
-    from src import create_app, db
-    from src.models import User, Conversation, Message
+from src.extensions import db
+from src import create_app
+from src.models import User, Conversation, Message
 
 # Globals
 processor = None
-chatbot = None
 vector_store = None
 conversation_manager = None
+
+# Import and initialize the Chatbot for WebSocket chat
+from src.services.chat_service import Chatbot
+chatbot = Chatbot()
 
 
 def initialize_components(app, config_path=None):
@@ -63,7 +63,7 @@ def setup_app():
         os.makedirs(os.path.join(base_dir, directory), exist_ok=True)
     
     # Create the Flask app
-    app = create_app('development')
+    app = create_app()
     
     # Register Blueprints
     from src.routes import api_bp, root_bp
