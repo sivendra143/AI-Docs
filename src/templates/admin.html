@@ -28,11 +28,24 @@
             <div class="admin-controls">
                 <button id="refresh-analytics" class="action-btn">Refresh Data</button>
             </div>
-            
-            <div id="loading-indicator" class="loading">Loading analytics data...</div>
-            
-            <div id="analytics-data" class="analytics-container">
-                <!-- Analytics data will be loaded here -->
+            <div class="admin-section">
+                <h2>Users</h2>
+                <ul id="user-list" class="admin-list">Loading users...</ul>
+            </div>
+            <div class="admin-section">
+                <h2>Documents</h2>
+                <ul id="document-list" class="admin-list">Loading documents...</ul>
+            </div>
+            <div class="admin-section">
+                <h2>System Info</h2>
+                <ul>
+                    <li>App Version: 1.0</li>
+                    <li>Server Time: <span id="server-time">--</span></li>
+                </ul>
+            </div>
+            <div class="admin-section">
+                <h2>Analytics</h2>
+                <div id="analytics-data" class="analytics-container">Analytics coming soon...</div>
             </div>
         </main>
 
@@ -44,21 +57,37 @@
     </div>
 
     <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/analytics.js') }}"></script>
     <script>
-        // Check authentication
+        // Logout button
         document.addEventListener('DOMContentLoaded', function() {
-            const token = localStorage.getItem('auth_token');
-            if (!token) {
-                window.location.href = '/login';
-            }
-            
-            // Logout button
             document.getElementById('logout-btn').addEventListener('click', function() {
-                localStorage.removeItem('auth_token');
-                window.location.href = '/login';
+                fetch('/api/logout', { method: 'POST', credentials: 'same-origin' })
+                  .then(() => window.location.href = '/login');
             });
         });
+    </script>
+    <script>
+    // Placeholder: Fetch and render admin data
+    document.addEventListener('DOMContentLoaded', function() {
+        // Fetch users
+        fetch('/api/admin/users', { credentials: 'same-origin' })
+            .then(res => res.json()).then(data => {
+                const users = data.users || [];
+                const userList = document.getElementById('user-list');
+                if (userList) {
+                    userList.innerHTML = users.map(u => `<li>${u.username} (${u.email || ''})${u.is_admin ? ' <b>[admin]</b>' : ''}</li>`).join('');
+                }
+            });
+        // Fetch documents
+        fetch('/api/documents/list', { credentials: 'same-origin' })
+            .then(res => res.json()).then(data => {
+                const docs = data.documents || data || [];
+                const docList = document.getElementById('document-list');
+                if (docList) {
+                    docList.innerHTML = docs.map(d => `<li>${d.filename || d.name}</li>`).join('');
+                }
+            });
+    });
     </script>
 </body>
 </html>

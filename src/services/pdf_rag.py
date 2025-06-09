@@ -2,7 +2,7 @@ import os
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_community.vectorstores import FAISS
-from langchain.embeddings import HuggingFaceEmbeddings
+from langchain_community.embeddings import HuggingFaceEmbeddings
 
 # Path to PDF directory
 PDF_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../docs'))

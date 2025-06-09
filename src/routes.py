@@ -41,6 +41,37 @@ def index():
         print(f"Error in root route: {error_details}")
         return f"Error: {str(e)}\n\n{error_details}", 500
 
+# Admin dashboard route
+@root_bp.route('/admin')
+@login_required
+def admin_dashboard():
+    if not getattr(current_user, 'is_admin', False):
+        return "Unauthorized", 403
+    return render_template('admin.html')
+
+# Login page route (renders login.html)
+@root_bp.route('/login', methods=['GET'])
+def login_page():
+    return render_template('login.html')
+
+# Admin API: List all users (for admin dashboard)
+@api_bp.route('/admin/users', methods=['GET'])
+@login_required
+def admin_list_users():
+    if not getattr(current_user, 'is_admin', False):
+        return jsonify({'error': 'Forbidden', 'message': 'Admin access required'}), 403
+    users = User.query.all()
+    user_list = [
+        {
+            'id': u.id,
+            'username': u.username,
+            'email': u.email,
+            'is_admin': u.is_admin,
+            'preferred_language': u.preferred_language
+        } for u in users
+    ]
+    return jsonify({'users': user_list})
+
 # Helper function to get allowed file extensions
 def allowed_file(filename):
     return '.' in filename and \
@@ -55,7 +86,7 @@ def login():
         return render_template('login.html')
         
     if current_user.is_authenticated:
-        return jsonify({'success': True, 'redirect': url_for('root.index')})
+        return jsonify({'success': True, 'redirect': url_for('root_bp.index')})
     
     if request.method == 'POST':
         data = request.get_json()

@@ -1,11 +1,12 @@
 import os
-from src import create_app, db
+from src import create_app
+from src.extensions import db
 from src.models import User
 from werkzeug.security import generate_password_hash
 
 def create_admin_user():
     # Create app with development config
-    app = create_app('development')
+    app = create_app()
     
     with app.app_context():
         # Create tables if they don't exist
