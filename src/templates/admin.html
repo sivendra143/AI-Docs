@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <link rel="icon" type="image/svg+xml" href="/static/img/logo.svg" />
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard - PDF Chatbot</title>
@@ -28,8 +29,8 @@
             <div class="admin-controls">
                 <button id="refresh-analytics" class="action-btn">Refresh Data</button>
             </div>
-            <div class="admin-section">
-                <h2>Users</h2>
+            <div class="admin-card admin-section">
+                <h2><span class="section-icon">👤</span>Users</h2>
                 <input type="text" id="user-search" class="admin-search-bar" placeholder="Search users..." autocomplete="off" />
                 <table class="admin-table" id="user-table">
                     <thead>
@@ -47,8 +48,8 @@
                 </table>
                 <div class="pagination" id="user-pagination"></div>
             </div>
-            <div class="admin-section">
-                <h2>Documents</h2>
+            <div class="admin-card admin-section">
+                <h2><span class="section-icon">📄</span>Documents</h2>
                 <input type="text" id="document-search" class="admin-search-bar" placeholder="Search documents..." autocomplete="off" />
                 <table class="admin-table" id="document-table">
                     <thead>
@@ -65,16 +66,40 @@
                 </table>
                 <div class="pagination" id="document-pagination"></div>
             </div>
-            <div class="admin-section">
-                <h2>Analytics</h2>
-                <div id="analytics-data" class="analytics-container">Loading analytics...</div>
-                <canvas id="user-growth-chart" style="max-width: 600px; margin:2rem auto 1rem; background:#fff; border-radius:0.5rem;"></canvas>
-                <canvas id="chat-activity-chart" style="max-width: 600px; margin:2rem auto 1rem; background:#fff; border-radius:0.5rem;"></canvas>
-                <canvas id="top-users-chart" style="max-width: 600px; margin:2rem auto 1rem; background:#fff; border-radius:0.5rem;"></canvas>
-                <button id="export-analytics-btn" style="margin:1rem 0 0 0;padding:0.5rem 1.5rem;font-size:1rem;background:#1976d2;color:#fff;border:none;border-radius:0.3rem;float:right;">Export Analytics CSV</button>
-            </div>
-            <div class="admin-section">
-                <h2>System Info</h2>
+            <div class="admin-card analytics-modern-card">
+    <div class="analytics-header">
+        <span class="analytics-icon">📈</span>
+        <span class="analytics-title">Analytics</span>
+    </div>
+    <div class="analytics-stats">
+        <div class="stat users">
+            <span class="stat-icon">👤</span>
+            <span class="stat-label">Users</span>
+            <span class="stat-value" id="stat-users">-</span>
+        </div>
+        <div class="stat documents">
+            <span class="stat-icon">📄</span>
+            <span class="stat-label">Documents</span>
+            <span class="stat-value" id="stat-docs">-</span>
+        </div>
+        <div class="stat conversations">
+            <span class="stat-icon">💬</span>
+            <span class="stat-label">Conversations</span>
+            <span class="stat-value" id="stat-conv">-</span>
+        </div>
+        <div class="stat messages">
+            <span class="stat-icon">✉️</span>
+            <span class="stat-label">Messages</span>
+            <span class="stat-value" id="stat-msgs">-</span>
+        </div>
+    </div>
+    <div class="admin-chart-card"><canvas id="user-growth-chart"></canvas></div>
+    <div class="admin-chart-card"><canvas id="chat-activity-chart"></canvas></div>
+    <div class="admin-chart-card"><canvas id="top-users-chart"></canvas></div>
+    <button id="export-analytics-btn" class="admin-btn" style="float:right;">Export Analytics CSV</button>
+</div>
+            <div class="admin-card admin-section">
+                <h2><span class="section-icon">⚙️</span>System Info</h2>
                 <ul>
                     <li>App Version: 1.0</li>
                     <li>Server Time: <span id="server-time">--</span></li>
@@ -82,9 +107,10 @@
             </div>
         </main>
 
+        <div class="admin-divider"></div>
         <footer>
-            <div class="info">
-                <p>PDF Chatbot Admin | <span id="status-indicator">Ready</span></p>
+            <div class="footer-content">
+                <span>&copy; 2025 PDF Chatbot Admin Dashboard</span>
             </div>
         </footer>
     </div>
@@ -101,6 +127,7 @@
 
     <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="{{ url_for('static', filename='js/admin-analytics.js') }}"></script>
     <script>
         // Logout button
         document.addEventListener('DOMContentLoaded', function() {

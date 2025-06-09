@@ -76,6 +76,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const messageDiv = document.createElement('div');
         messageDiv.className = 'message user';
         messageDiv.innerHTML = `
+            <div class="message-avatar user-avatar">🧑</div>
             <div class="message-content">
                 <p>${escapeHtml(text)}</p>
             </div>
@@ -100,11 +101,13 @@ document.addEventListener('DOMContentLoaded', function() {
         const messageDiv = document.createElement('div');
         messageDiv.className = 'message bot';
         messageDiv.innerHTML = `
+            <div class="message-avatar bot-avatar">🤖</div>
             <div class="message-content">
                 <p>${escapeHtml(text).replace(/\n/g, '<br>')}</p>
             </div>
         `;
         chatMessages.appendChild(messageDiv);
+        messageDiv.classList.add('fade-in');
         scrollToBottom();
     }
 
@@ -113,6 +116,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const messageDiv = document.createElement('div');
         messageDiv.className = 'message system';
         messageDiv.innerHTML = `
+            <div class="message-avatar system-avatar">💡</div>
             <div class="message-content">
                 <p>${escapeHtml(text)}</p>
             </div>

@@ -27,7 +27,9 @@
 }
 .admin-table tr:hover {
     background: var(--hover-bg, #e3e9f7);
-    transition: background 0.2s;
+    transition: background 0.2s, box-shadow 0.2s;
+    box-shadow: 0 2px 12px #1976d222;
+    cursor: pointer;
 }
 
 /* Action buttons */
@@ -125,6 +127,181 @@
 }
 
 
+/* Google Fonts - Inter */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+html, body {
+    font-family: 'Inter', system-ui, Arial, sans-serif;
+}
+
+/* Card container for sections */
+.admin-card {
+    background: linear-gradient(135deg, #f8fafc 60%, #e3e9f7 100%);
+    box-shadow: 0 4px 24px rgba(25, 118, 210, 0.07), 0 1.5px 8px #b6c7e6;
+    border-radius: 1.1rem;
+    padding: 2.2rem 2.2rem 1.5rem 2.2rem;
+    margin-bottom: 2.2rem;
+    transition: box-shadow 0.2s, background 0.2s;
+    position: relative;
+    opacity: 0;
+    transform: translateY(32px);
+    animation: fadeInUp 0.7s cubic-bezier(.45,1.4,.6,1) 0.1s forwards;
+}
+@keyframes fadeInUp {
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+[data-theme="dark"] .admin-card {
+    background: linear-gradient(135deg, #23272e 60%, #20242a 100%);
+    box-shadow: 0 4px 24px #12151b99, 0 1.5px 8px #2c3642;
+}
+
+/* Icon support for section headers */
+.admin-section h2 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--primary-color, #1976d2);
+    margin-bottom: 1.3rem;
+    letter-spacing: 0.01em;
+    text-shadow: 0 2px 10px #e3e9f7cc;
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+}
+.admin-section h2 .section-icon {
+    font-size: 1.3em;
+    vertical-align: middle;
+    margin-right: 0.18em;
+    opacity: 0.88;
+}
+[data-theme="dark"] .admin-section h2 {
+    color: #6fa8dc;
+    text-shadow: 0 2px 10px #23272e;
+}
+
+/* Modal polish */
+#modal-dialog {
+    border-radius: 1.1rem !important;
+    box-shadow: 0 6px 32px #1976d288, 0 1.5px 8px #b6c7e6;
+    animation: modalFadeIn 0.36s cubic-bezier(.45,1.4,.6,1);
+    transition: box-shadow 0.2s, background 0.2s;
+}
+@keyframes modalFadeIn {
+    from { opacity: 0; transform: scale(.97) translate(-50%,-48%); }
+    to   { opacity: 1; transform: scale(1) translate(-50%,-50%); }
+}
+[data-theme="dark"] #modal-dialog {
+    box-shadow: 0 6px 32px #12151b99, 0 1.5px 8px #2c3642;
+}
+#modal-confirm, #modal-cancel {
+    font-size: 1.08em;
+    border-radius: 0.5rem;
+    padding: 0.5rem 1.4rem;
+    margin-top: 0.5rem;
+    box-shadow: 0 2px 8px #1976d233;
+}
+#modal-confirm:focus, #modal-cancel:focus {
+    outline: 2px solid #1976d2;
+    outline-offset: 2px;
+}
+
+
+.admin-section h2 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--primary-color, #1976d2);
+    margin-bottom: 1.3rem;
+    letter-spacing: 0.01em;
+    text-shadow: 0 2px 10px #e3e9f7cc;
+}
+[data-theme="dark"] .admin-section h2 {
+    color: #6fa8dc;
+    text-shadow: 0 2px 10px #23272e;
+}
+
+.admin-divider {
+    width: 100%;
+    height: 2px;
+    background: linear-gradient(90deg, #e3e9f7 0%, #f8fafc 100%);
+    margin: 2.2rem 0 1.1rem;
+    border-radius: 1px;
+    opacity: 0.5;
+}
+[data-theme="dark"] .admin-divider {
+    background: linear-gradient(90deg, #23272e 0%, #2c3642 100%);
+}
+
+/* Chart card style */
+.admin-chart-card {
+    background: #fff;
+    border-radius: 0.8rem;
+    box-shadow: 0 2px 12px #d7e3fc44;
+    padding: 1.5rem 1.5rem 1.2rem 1.5rem;
+    margin: 1.5rem auto 2.2rem auto;
+    max-width: 650px;
+    transition: box-shadow 0.2s, transform 0.2s;
+    opacity: 0;
+    transform: translateY(24px) scale(0.98);
+    animation: fadeInChart 0.8s cubic-bezier(.45,1.4,.6,1) 0.2s forwards;
+}
+@keyframes fadeInChart {
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+.admin-chart-card:hover {
+    box-shadow: 0 6px 24px #1976d244;
+    transform: translateY(-2px) scale(1.01);
+}
+[data-theme="dark"] .admin-chart-card {
+    background: #23272e;
+    box-shadow: 0 2px 12px #12151b99;
+}
+
+/* Beautiful buttons */
+.admin-btn, .admin-table button {
+    border: none;
+    border-radius: 0.5rem;
+    padding: 0.5rem 1.4rem;
+    font-size: 1.05em;
+    font-weight: 600;
+    background: linear-gradient(90deg, #1976d2 60%, #43a047 100%);
+    color: #fff;
+    cursor: pointer;
+    box-shadow: 0 2px 8px #1976d233;
+    transition: background 0.2s, box-shadow 0.2s, transform 0.1s;
+    overflow: hidden;
+    position: relative;
+}
+.admin-btn:active::after, .admin-table button:active::after {
+    content: '';
+    position: absolute;
+    left: 50%; top: 50%;
+    transform: translate(-50%, -50%) scale(1);
+    width: 200%; height: 200%;
+    background: radial-gradient(circle, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.01) 80%);
+    border-radius: 50%;
+    pointer-events: none;
+    animation: rippleBtn 0.45s linear;
+    z-index: 2;
+}
+@keyframes rippleBtn {
+    from { opacity: 0.7; transform: translate(-50%,-50%) scale(0.7); }
+    to   { opacity: 0;   transform: translate(-50%,-50%) scale(1.5); }
+}
+.admin-btn:hover, .admin-table button:hover {
+    filter: brightness(1.08);
+    box-shadow: 0 4px 16px #1976d244;
+    transform: translateY(-2px) scale(1.03);
+}
+.admin-btn:focus {
+    outline: 2px solid #1976d2;
+    outline-offset: 2px;
+}
+
+/* Analytics summary cards */
 .analytics-summary {
     display: flex;
     flex-wrap: wrap;

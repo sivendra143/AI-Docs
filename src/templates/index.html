@@ -10,8 +10,11 @@
 </head>
 <body>
     <div class="app-container">
-        <header>
-            <h1>PDF Chatbot</h1>
+        <header class="chat-header">
+            <div class="header-left">
+                <img src="/static/img/logo.svg" alt="Logo" class="chat-logo" style="height:2.1rem;width:2.1rem;vertical-align:middle;">
+                <span class="chat-title">PDF Chatbot</span>
+            </div>
             <div class="header-actions">
                 <a href="/admin" class="nav-link">Admin</a>
                 <div class="theme-toggle">
@@ -24,34 +27,35 @@
         </header>
 
         <main>
-            <div class="chat-container">
-                <div id="chat-messages">
-                    <div class="message system">
-                        <div class="message-content">
-                            <p>Welcome to PDF Chatbot! Ask me anything about the documents in your folder.</p>
+            <div class="card-like chat-card">
+            <div class="chat-card">
+                <div class="chat-container">
+                    <div id="chat-messages">
+                        <div class="message system">
+                            <div class="message-avatar system-avatar">💡</div>
+                            <div class="message-content">
+                                <p>Welcome to PDF Chatbot! Ask me anything about the documents in your folder.</p>
+                            </div>
                         </div>
                     </div>
-                </div>
-                
-                <div class="suggestions-container" id="suggestions-container">
-                    <!-- Suggestions will be added here dynamically -->
-                </div>
-
-                <div class="voice-input-container">
-                    <button id="start-recording" class="voice-btn">
-                        <span class="mic-icon"></span> Start Recording
-                    </button>
-                    <button id="stop-recording" class="voice-btn" disabled>
-                        <span class="stop-icon"></span> Stop Recording
-                    </button>
-                    <div id="recording-status"></div>
-                </div>
-
-                <div class="input-container">
-                    <form id="question-form">
-                        <input type="text" id="question-input" placeholder="Ask a question..." autocomplete="off">
-                        <button type="submit" id="send-btn">Send</button>
-                    </form>
+                    <div class="suggestions-container" id="suggestions-container">
+                        <!-- Suggestions will be added here dynamically -->
+                    </div>
+                    <div class="voice-input-container">
+                        <button id="start-recording" class="voice-btn">
+                            <span class="mic-icon"></span> Start Recording
+                        </button>
+                        <button id="stop-recording" class="voice-btn" disabled>
+                            <span class="stop-icon"></span> Stop Recording
+                        </button>
+                        <div id="recording-status"></div>
+                    </div>
+                    <div class="input-container">
+                        <form id="question-form">
+                            <input type="text" id="question-input" placeholder="Ask a question..." autocomplete="off">
+                            <button type="submit" id="send-btn"><span class="send-icon">➤</span></button>
+                        </form>
+                    </div>
                 </div>
             </div>
         </main>
