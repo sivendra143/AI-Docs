@@ -1,53 +1,166 @@
-# PDF Chatbot
+# AI Document Chat with RAG
 
-A local AI chatbot that reads PDFs and other document formats from a folder and enables Q&A using embedded LLMs (like Llama3 via LM Studio or Ollama).
+A powerful document question-answering system that leverages Retrieval-Augmented Generation (RAG) to provide accurate, context-aware responses from your documents. Built with Python, Flask, LangChain, and modern web technologies.
 
-## Features
+![AI Document Chat Demo](https://via.placeholder.com/800x400.png?text=AI+Document+Chat+Demo)
 
-- Scan a folder for PDF files and other document formats (DOCX, TXT, CSV, XLSX)
-- Extract and chunk content using PyMuPDF or pdfplumber
-- Generate embeddings using SentenceTransformers
-- Index embeddings in FAISS for fast vector search
-- Ask questions via Web UI
-- Use a local LLM for RAG-style answers
-- Fallback for out-of-scope queries
-- Smart suggestions based on previous questions and context
-- WebSocket for real-time communication
-- Voice input using Whisper
-- User Authentication with JWT
-- Admin dashboard
-- Dark/light theme toggle
+## ✨ Features
 
-## Requirements
+- **Multi-Document Support**: Process and query across PDF, DOCX, TXT, CSV, and XLSX files
+- **Advanced RAG Pipeline**: Combines retrieval and generation for accurate, context-aware responses
+- **Real-time Interaction**: WebSocket-based chat interface with typing indicators
+- **Conversation History**: Maintains context across multiple interactions
+- **Local LLM Support**: Works with LM Studio, Ollama, or any OpenAI-compatible API
+- **Vector Search**: FAISS-based semantic search for efficient document retrieval
+- **Modern Web UI**: Responsive design with dark/light theme support
+- **RESTful API**: Easy integration with other applications
+- **Extensible Architecture**: Modular design for easy customization
 
-- Python 3.8+
-- Node.js 16+ (for frontend assets)
-- Git
+## 🚀 Quick Start
 
-## Getting Started
+### Prerequisites
 
-### 1. Clone the Repository
+- Python 3.10+
+- pip (Python package manager)
+- LM Studio or Ollama running locally (or access to an OpenAI-compatible API)
 
-```bash
-git clone https://github.com/yourusername/ai-docs.git
-cd ai-docs
+### Installation
+
+1. **Clone the repository**:
+   ```bash
+   git clone https://github.com/yourusername/ai-docs.git
+   cd ai-docs
+   ```
+
+2. **Create and activate a virtual environment**:
+   ```bash
+   # Windows
+   python -m venv venv
+   .\venv\Scripts\activate
+   
+   # Linux/macOS
+   python3 -m venv venv
+   source venv/bin/activate
+   ```
+
+3. **Install dependencies**:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. **Configure the application**:
+   - Copy `config.example.json` to `config.json`
+   - Update the configuration with your LM Studio/Ollama settings
+
+5. **Add documents**:
+   - Place your documents in the `docs` folder
+   - Supported formats: PDF, DOCX, TXT, CSV, XLSX
+
+### Running the Application
+
+1. **Start the backend server**:
+   ```bash
+   python run_app.py --debug
+   ```
+
+2. **Access the web interface**:
+   - Open your browser and navigate to `http://localhost:5000`
+
+## 🔧 Configuration
+
+Edit `config.json` to customize the application behavior:
+
+```json
+{
+  "document_processor": {
+    "docs_folder": "docs",
+    "chunk_size": 1000,
+    "chunk_overlap": 200,
+    "supported_file_types": ["pdf", "docx", "txt", "csv", "xlsx"]
+  },
+  "llm": {
+    "model_name": "gpt-3.5-turbo",
+    "temperature": 0.7,
+    "max_tokens": 1000
+  },
+  "embedding": {
+    "model_name": "all-MiniLM-L6-v2"
+  },
+  "server": {
+    "host": "0.0.0.0",
+    "port": 5000,
+    "debug": true
+  }
+}
 ```
 
-### 2. Set Up the Environment
+## 🤖 Using Different LLM Backends
 
-#### Windows
+### LM Studio
+1. Download and run [LM Studio](https://lmstudio.ai/)
+2. Load your preferred model
+3. Update `config.json` with the LM Studio API URL (default: `http://localhost:1234/v1`)
 
-1. Run the setup script:
-   ```powershell
-   .\setup_env.ps1
-   ```
+### Ollama
+1. Install [Ollama](https://ollama.ai/)
+2. Pull a model: `ollama pull llama3`
+3. Update `config.json` with the Ollama API URL (default: `http://localhost:11434/v1`)
 
-2. Start the development server:
-   ```powershell
-   .\run.ps1
-   ```
+### OpenAI
+1. Get your API key from [OpenAI](https://platform.openai.com/)
+2. Set the `OPENAI_API_KEY` environment variable
+3. Update `config.json` with the OpenAI model name (e.g., `gpt-4-turbo`)
 
-#### Linux/macOS
+## 📚 Documentation
+
+### Project Structure
+
+```
+ai-docs/
+├── docs/                    # Directory for document storage
+├── src/                     # Source code
+│   ├── __init__.py
+│   ├── app.py               # Main application setup
+│   ├── config.json          # Configuration file
+│   ├── document_processor.py # Document processing logic
+│   ├── llm_rag.py           # RAG implementation
+│   ├── conversation_manager.py # Conversation management
+│   ├── websocket.py         # WebSocket handlers
+│   └── static/              # Frontend assets
+│   └── templates/           # HTML templates
+├── requirements.txt         # Python dependencies
+└── run_app.py              # Application entry point
+```
+
+### API Endpoints
+
+- `GET /`: Web interface
+- `GET /api/health`: Health check
+- `POST /api/chat`: Chat endpoint
+- `POST /api/upload`: Document upload
+- `GET /api/conversations`: List conversations
+- `GET /api/conversations/<id>`: Get conversation history
+
+## 🤝 Contributing
+
+Contributions are welcome! Please follow these steps:
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- [LangChain](https://python.langchain.com/) for the RAG framework
+- [FAISS](https://github.com/facebookresearch/faiss) for efficient similarity search
+- [LM Studio](https://lmstudio.ai/) and [Ollama](https://ollama.ai/) for local LLM support
+- [Flask](https://flask.palletsprojects.com/) and [Flask-SocketIO](https://flask-socketio.readthedocs.io/) for the web framework
 
 1. Make the setup script executable:
    ```bash

@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket Test</title>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        #status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .connected { background-color: #dff0d8; color: #3c763d; }
+        .disconnected { background-color: #f2dede; color: #a94442; }
+        .connecting { background-color: #fcf8e3; color: #8a6d3b; }
+        #log {
+            height: 300px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin: 10px 0;
+            font-family: monospace;
+            background-color: #f9f9f9;
+        }
+        .message { margin: 5px 0; }
+        .sent { color: #337ab7; }
+        .received { color: #5cb85c; }
+        .error { color: #d9534f; }
+        .system { color: #f0ad4e; }
+        button {
+            padding: 8px 16px;
+            margin: 5px;
+            cursor: pointer;
+            background-color: #5bc0de;
+            color: white;
+            border: none;
+            border-radius: 4px;
+        }
+        button:hover {
+            background-color: #46b8da;
+        }
+        #message-input {
+            width: 70%;
+            padding: 8px;
+            margin-right: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>WebSocket Test</h1>
+    
+    <div>
+        <button id="connect-btn">Connect</button>
+        <button id="disconnect-btn">Disconnect</button>
+        <button id="clear-log-btn">Clear Log</button>
+    </div>
+    
+    <div id="status" class="disconnected">Disconnected</div>
+    
+    <div>
+        <input type="text" id="message-input" placeholder="Type a message...">
+        <button id="send-btn">Send</button>
+    </div>
+    
+    <h3>Event Log:</h3>
+    <div id="log"></div>
+    
+    <script>
+        // Global socket instance
+        let socket = null;
+        let isConnected = false;
+        
+        // DOM elements
+        const connectBtn = document.getElementById('connect-btn');
+        const disconnectBtn = document.getElementById('disconnect-btn');
+        const clearLogBtn = document.getElementById('clear-log-btn');
+        const sendBtn = document.getElementById('send-btn');
+        const messageInput = document.getElementById('message-input');
+        const statusDiv = document.getElementById('status');
+        const logDiv = document.getElementById('log');
+        
+        // Add a message to the log
+        function logMessage(message, type = 'system') {
+            const messageElement = document.createElement('div');
+            messageElement.className = `message ${type}`;
+            messageElement.textContent = `[${new Date().toISOString()}] ${message}`;
+            logDiv.appendChild(messageElement);
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+        
+        // Update connection status
+        function updateStatus(connected) {
+            isConnected = connected;
+            statusDiv.textContent = connected ? 'Connected' : 'Disconnected';
+            statusDiv.className = connected ? 'connected' : 'disconnected';
+            connectBtn.disabled = connected;
+            disconnectBtn.disabled = !connected;
+            sendBtn.disabled = !connected;
+        }
+        
+        // Connect to WebSocket server
+        function connect() {
+            if (socket) {
+                logMessage('Already connected or connecting...', 'system');
+                return;
+            }
+            
+            logMessage('Connecting to WebSocket server...', 'system');
+            updateStatus(false);
+            
+            // Initialize socket with options
+            socket = io({
+                reconnection: true,
+                reconnectionAttempts: Infinity,
+                reconnectionDelay: 1000,
+                reconnectionDelayMax: 5000,
+                timeout: 10000,
+                autoConnect: true,
+                transports: ['websocket', 'polling'],
+                upgrade: true,
+                forceNew: true,
+                withCredentials: true,
+                path: '/socket.io/'
+            });
+            
+            // Connection established
+            socket.on('connect', () => {
+                logMessage(`Connected to server with ID: ${socket.id}`, 'system');
+                updateStatus(true);
+                
+                // Test the connection
+                testConnection();
+            });
+            
+            // Connection lost
+            socket.on('disconnect', (reason) => {
+                logMessage(`Disconnected: ${reason}`, 'error');
+                updateStatus(false);
+                
+                // Try to reconnect if the server disconnected us
+                if (reason === 'io server disconnect') {
+                    logMessage('Server disconnected, attempting to reconnect...', 'system');
+                    socket.connect();
+                }
+            });
+            
+            // Handle connection errors
+            socket.on('connect_error', (error) => {
+                logMessage(`Connection error: ${error.message}`, 'error');
+                updateStatus(false);
+                
+                // Try to reconnect after a delay
+                setTimeout(() => {
+                    logMessage('Attempting to reconnect...', 'system');
+                    socket.connect();
+                }, 5000);
+            });
+            
+            // Handle test responses
+            socket.on('test_response', (data) => {
+                logMessage(`Test response: ${JSON.stringify(data)}`, 'received');
+            });
+            
+            // Handle chat messages
+            socket.on('new_message', (data) => {
+                logMessage(`New message: ${JSON.stringify(data)}`, 'received');
+            });
+            
+            // Handle message received acknowledgment
+            socket.on('message_received', (data) => {
+                logMessage(`Message received by server: ${JSON.stringify(data)}`, 'system');
+            });
+            
+            // Handle other errors
+            socket.on('error', (error) => {
+                logMessage(`Error: ${error.message || 'Unknown error occurred'}`, 'error');
+            });
+            
+            // Log all events for debugging
+            const originalEmit = socket.emit;
+            socket.emit = function() {
+                logMessage(`Emitting event: ${arguments[0]} ${JSON.stringify(arguments[1] || {})}`, 'sent');
+                originalEmit.apply(this, arguments);
+            };
+        }
+        
+        // Disconnect from WebSocket server
+        function disconnect() {
+            if (!socket) {
+                logMessage('Not connected', 'system');
+                return;
+            }
+            
+            logMessage('Disconnecting...', 'system');
+            socket.disconnect();
+            socket = null;
+            updateStatus(false);
+        }
+        
+        // Send a test message
+        function testConnection() {
+            if (!socket || !isConnected) {
+                logMessage('Not connected to server', 'error');
+                return;
+            }
+            
+            const testData = {
+                message: 'Test message from client',
+                timestamp: new Date().toISOString()
+            };
+            
+            logMessage('Sending test message...', 'system');
+            socket.emit('test', testData);
+        }
+        
+        // Send a chat message
+        function sendMessage() {
+            if (!socket || !isConnected) {
+                logMessage('Not connected to server', 'error');
+                return;
+            }
+            
+            const message = messageInput.value.trim();
+            if (!message) return;
+            
+            const messageData = {
+                message: message,
+                conversation_id: 'test-conversation',
+                language: 'en',
+                timestamp: new Date().toISOString()
+            };
+            
+            logMessage(`Sending message: ${message}`, 'sent');
+            socket.emit('send_message', messageData);
+            messageInput.value = '';
+        }
+        
+        // Clear the log
+        function clearLog() {
+            logDiv.innerHTML = '';
+        }
+        
+        // Event listeners
+        connectBtn.addEventListener('click', connect);
+        disconnectBtn.addEventListener('click', disconnect);
+        clearLogBtn.addEventListener('click', clearLog);
+        sendBtn.addEventListener('click', sendMessage);
+        
+        // Send message on Enter key
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+        
+        // Initial state
+        updateStatus(false);
+        logMessage('WebSocket test page loaded. Click "Connect" to start.', 'system');
+    </script>
+</body>
+</html>

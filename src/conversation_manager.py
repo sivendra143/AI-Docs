@@ -1,14 +1,95 @@
 from datetime import datetime
-from typing import List, Dict, Any, Optional, Tuple
+from typing import List, Dict, Any, Optional, Tuple, Union
+from collections import defaultdict, deque
 from sqlalchemy import desc, func, or_
 from models import db, Conversation, Message, User
+import json
+import logging
+
+# Configure logging
+logger = logging.getLogger(__name__)
 
 class ConversationManager:
     """
     A class to manage conversations and messages in the chat application.
-    Handles CRUD operations for conversations and messages with proper authorization.
+    Handles both database and in-memory storage of conversations and messages.
     """
     
+    def __init__(self, max_history_per_conversation: int = 20):
+        """Initialize the conversation manager.
+        
+        Args:
+            max_history_per_conversation: Maximum number of messages to keep in memory per conversation
+        """
+        self.max_history = max_history_per_conversation
+        # In-memory storage for conversations (conversation_id -> deque of messages)
+        self.conversations = defaultdict(lambda: deque(maxlen=max_history))
+        
+    def add_message(self, conversation_id: str, message: Dict[str, Any]) -> None:
+        """Add a message to the conversation history.
+        
+        Args:
+            conversation_id: The ID of the conversation
+            message: The message dictionary containing role, content, and optional metadata
+        """
+        try:
+            # Ensure required fields are present
+            if 'role' not in message or 'content' not in message:
+                logger.error(f"Invalid message format: {message}")
+                return
+                
+            # Add timestamp if not provided
+            if 'timestamp' not in message:
+                message['timestamp'] = datetime.utcnow()
+                
+            # Add message to the conversation
+            self.conversations[conversation_id].append(message)
+            logger.debug(f"Added message to conversation {conversation_id}: {message['content'][:50]}...")
+            
+        except Exception as e:
+            logger.error(f"Error adding message to conversation {conversation_id}: {str(e)}")
+    
+    def get_conversation_history(self, conversation_id: str) -> List[Dict[str, Any]]:
+        """Get the conversation history.
+        
+        Args:
+            conversation_id: The ID of the conversation
+            
+        Returns:
+            List of messages in the conversation
+        """
+        try:
+            return list(self.conversations[conversation_id])
+        except KeyError:
+            return []
+    
+    def clear_conversation(self, conversation_id: str) -> bool:
+        """Clear a conversation's history.
+        
+        Args:
+            conversation_id: The ID of the conversation to clear
+            
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        try:
+            if conversation_id in self.conversations:
+                self.conversations[conversation_id].clear()
+                return True
+            return False
+        except Exception as e:
+            logger.error(f"Error clearing conversation {conversation_id}: {str(e)}")
+            return False
+    
+    def get_active_conversations(self) -> List[str]:
+        """Get a list of active conversation IDs.
+        
+        Returns:
+            List of conversation IDs that have messages
+        """
+        return [conv_id for conv_id, messages in self.conversations.items() if messages]
+    
+    # Database methods for persistent storage
     @staticmethod
     def create_conversation(user_id: int, title: str = "New Chat") -> Optional[Dict[str, Any]]:
         """

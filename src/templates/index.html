@@ -72,58 +72,20 @@
     </div>
 
     <!-- Scripts -->
+    <!-- Load Socket.IO client first with SRI -->
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js" 
+            integrity="sha384-mZLF4UVrpi/QTWPA7BjNPEnkIfRFn4ZEOuiQt6Fbh/VIML/UEOYMvgzzA8So3l6Rq" 
+            crossorigin="anonymous"></script>
+    
+    <!-- Application Scripts (in order of dependency) -->
     <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
     <script src="{{ url_for('static', filename='js/voice/voice.js') }}"></script>
+    <!-- Removed broken chat.new.js reference -->
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
-    <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
     <script>
+        // Initialize theme on page load
         document.addEventListener('DOMContentLoaded', function() {
-            // Initialize Socket.IO
-            const socket = io();
-            
-            socket.on('connect', function() {
-                console.log('Connected to server');
-            });
-            
-            socket.on('answer', function(data) {
-                // Remove typing indicator
-                const typingIndicator = document.querySelector('.typing-indicator');
-                if (typingIndicator) {
-                    typingIndicator.remove();
-                }
-                
-                // Add bot response
-                addBotMessage(data.answer);
-                
-                // Display suggestions
-                displaySuggestions(data.suggestions);
-                
-                document.getElementById('status-indicator').textContent = 'Ready';
-            });
-            
-            // Override the form submission to use WebSockets
-            const originalSubmitHandler = questionForm.onsubmit;
-            questionForm.onsubmit = function(e) {
-                e.preventDefault();
-                
-                const question = questionInput.value.trim();
-                if (!question) return;
-                
-                // Clear input and suggestions
-                questionInput.value = '';
-                suggestionsContainer.innerHTML = '';
-                
-                // Add user message
-                addUserMessage(question);
-                
-                // Show typing indicator
-                showTypingIndicator();
-                
-                // Send question via WebSocket
-                socket.emit('ask', { question });
-                
-                document.getElementById('status-indicator').textContent = 'Processing...';
-            };
+            console.log('DOM fully loaded and parsed');
             
             // Theme selector
             const themeSelect = document.getElementById('theme-select');
@@ -132,18 +94,40 @@
                 const currentTheme = localStorage.getItem('theme') || 'system';
                 themeSelect.value = currentTheme;
                 
-                themeSelect.addEventListener('change', function() {
-                    const selectedTheme = themeSelect.value;
-                    
-                    if (selectedTheme === 'system') {
+                // Apply theme
+                if (currentTheme === 'system') {
+                    const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                    document.documentElement.setAttribute('data-theme', systemPrefersDark ? 'dark' : 'light');
+                } else {
+                    document.documentElement.setAttribute('data-theme', currentTheme);
+                }
+                
+                // Handle theme changes
+                themeSelect.addEventListener('change', function(e) {
+                    const theme = e.target.value;
+                    localStorage.setItem('theme', theme);
+                    if (theme === 'system') {
                         const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
                         document.documentElement.setAttribute('data-theme', systemPrefersDark ? 'dark' : 'light');
                     } else {
-                        document.documentElement.setAttribute('data-theme', selectedTheme);
+                        document.documentElement.setAttribute('data-theme', theme);
                     }
-                    
-                    localStorage.setItem('theme', selectedTheme);
                 });
+            }
+            
+            // ChatApp initialization removed because chat.js is not used. AJAX fallback or other chat logic should be placed here if needed.
+        });
+        
+        // Handle page visibility changes
+        document.addEventListener('visibilitychange', function() {
+            if (document.visibilityState === 'visible') {
+                console.log('Page is now visible - checking WebSocket connection...');
+                if (window.chatApp && window.chatApp.socket) {
+                    if (!window.chatApp.socket.connected) {
+                        console.log('Reconnecting WebSocket...');
+                        window.chatApp.socket.connect();
+                    }
+                }
             }
         });
     </script>

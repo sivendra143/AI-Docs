@@ -49,50 +49,66 @@ def allowed_file(filename):
 # Auth Routes
 @api_bp.route('/login', methods=['GET', 'POST'])
 def login():
+    # Handle GET request - serve login page or redirect if already logged in
     if request.method == 'GET':
         if current_user.is_authenticated:
-            return redirect(url_for('root.index'))
+            next_page = request.args.get('next')
+            return redirect(next_page or url_for('root_blueprint.index'))
         return render_template('login.html')
-        
+    
+    # Handle POST request - process login
     if current_user.is_authenticated:
-        return jsonify({'success': True, 'redirect': url_for('root.index')})
-    
-    if request.method == 'POST':
-        data = request.get_json()
-        if not data:
-            return jsonify({'success': False, 'message': 'No data provided'}), 400
-            
-        username = data.get('username')
-        password = data.get('password')
-        
-        if not username or not password:
-            return jsonify({'success': False, 'message': 'Username and password are required'}), 400
-        
-        user = User.query.filter_by(username=username).first()
-        
-        if user and user.check_password(password):
-            login_user(user, remember=True)
-            user.last_login = datetime.utcnow()
-            db.session.commit()
-            
-            return jsonify({
-                'success': True,
-                'message': 'Login successful',
-                'user': {
-                    'id': user.id,
-                    'username': user.username,
-                    'email': user.email,
-                    'is_admin': user.is_admin,
-                    'preferred_language': user.preferred_language or 'en'
-                }
-            })
-        
         return jsonify({
-            'success': False,
-            'message': 'Invalid username or password'
-        }), 401
+            'success': True, 
+            'message': 'Already logged in',
+            'redirect': request.args.get('next') or url_for('root_blueprint.index')
+        })
     
-    return jsonify({'message': 'Please log in'})
+    # Process login form data
+    data = request.get_json(silent=True) or {}
+    if not data and request.form:
+        data = request.form
+    
+    username = data.get('username')
+    password = data.get('password')
+    
+    if not username or not password:
+        return jsonify({
+            'success': False, 
+            'message': 'Username and password are required'
+        }), 400
+    
+    user = User.query.filter_by(username=username).first()
+    
+    if user and user.check_password(password):
+        login_user(user, remember=True)
+        user.last_login = datetime.utcnow()
+        db.session.commit()
+        
+        next_page = request.args.get('next')
+        response_data = {
+            'success': True,
+            'message': 'Login successful',
+            'user': {
+                'id': user.id,
+                'username': user.username,
+                'email': user.email,
+                'is_admin': user.is_admin,
+                'preferred_language': user.preferred_language or 'en'
+            },
+            'redirect': next_page or url_for('root_blueprint.index')
+        }
+        
+        # If it's a form submission, do a redirect
+        if request.form:
+            return redirect(next_page or url_for('root_blueprint.index'))
+            
+        return jsonify(response_data)
+    
+    return jsonify({
+        'success': False,
+        'message': 'Invalid username or password'
+    }), 401
 
 @api_bp.route('/logout')
 @login_required
@@ -315,21 +331,35 @@ def system_status():
         'messages': Message.query.count()
     })
 
+# Chat Interface
+@root_bp.route('/chat')
+@login_required
+def chat_interface():
+    """Serve the chat interface."""
+    return render_template('chat.html')
+
+# Test WebSocket Page
+@root_bp.route('/test-ws')
+def test_websocket():
+    """Serve the WebSocket test page."""
+    return render_template('test_ws.html')
+
 # Test Chatbot Endpoint
-@api_bp.route('/test/chat', methods=['POST'])
+@api_bp.route('/test-chat', methods=['POST'])
 def test_chat():
+    """Test endpoint for chatbot functionality."""
     try:
         data = request.get_json()
-        question = data.get('question', 'Hello')
+        message = data.get('message', '')
         
-        # Simple response without any complex processing
+        # This is a simple echo response for testing
         response = {
-            'response': f"Test response to: {question}",
-            'status': 'success',
-            'timestamp': datetime.utcnow().isoformat()
+            'response': f"You said: {message}",
+            'status': 'success'
         }
         
         return jsonify(response)
+        
     except Exception as e:
         return jsonify({
             'error': str(e),

@@ -2,100 +2,44 @@
 WebSocket module for handling real-time communication.
 """
 from flask import current_app, request
-from flask_socketio import emit, join_room, leave_room
+from flask_socketio import SocketIO, emit, join_room, leave_room
 from flask_login import current_user, login_required
 from datetime import datetime
 import logging
 import json
-import os
 from typing import Dict, Any, Optional
 
-# Configure basic logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger('websocket')
-
-# Ensure logs directory exists
-os.makedirs('logs', exist_ok=True)
-
-# Add file handler for WebSocket logs
-file_handler = logging.FileHandler('logs/websocket.log')
-file_handler.setLevel(logging.INFO)
-file_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
-logger.addHandler(file_handler)
+# Configure logging
+logger = logging.getLogger(__name__)
 
 def setup_websocket(app, chatbot=None):
     """
     Set up WebSocket event handlers.
     
     Args:
-        app: Flask application instance
-        chatbot: Optional chatbot instance
+        app: The Flask application instance
+        chatbot: An instance of the Chatbot class
         
     Returns:
         The configured SocketIO instance
     """
-    from .socketio import socketio as app_socketio
-    
-    # Get the socketio instance from app extensions or use the module-level one
-    socketio = getattr(app, 'extensions', {}).get('socketio', app_socketio)
-    
-    # Only set up event handlers once
-    if hasattr(app, '_websocket_setup_done') and app._websocket_setup_done:
-        logger.info("WebSocket setup already completed, skipping...")
-        return socketio
-    
-    print("\n" + "="*50)
-    print("🔌 Setting up WebSocket...")
-    print(f"🔧 App debug: {app.debug}")
-    print(f"🔧 Testing mode: {app.testing}")
-    print("="*50 + "\n")
-    
-    logger.info("Initializing WebSocket event handlers")
-    
-    # Print WebSocket configuration
-    print("\n🔌 WebSocket Configuration:")
-    print(f"   - Async Mode: {getattr(socketio, 'async_mode', 'unknown')}")
-    print(f"   - Path: {getattr(socketio, 'path', '/socket.io')}")
-    print(f"   - Transports: {getattr(socketio, 'transports', ['websocket', 'polling'])}")
-    print(f"   - Debug: {app.debug}")
-    print(f"   - Testing: {app.testing}")
-    
-    # Mark setup as done
-    app._websocket_setup_done = True
+    # Initialize SocketIO
+    socketio = SocketIO(
+        app,
+        cors_allowed_origins="*",
+        logger=app.debug,
+        engineio_logger=app.debug,
+        async_mode='threading',
+        async_handlers=True,
+        ping_timeout=60,
+        ping_interval=25
+    )
     
     # Store chatbot instance in app context
     if chatbot:
         if not hasattr(app, 'extensions'):
             app.extensions = {}
         app.extensions['chatbot'] = chatbot
-        
-    # Ensure we have a logger
-    if not hasattr(socketio, 'logger'):
-        import logging
-        socketio.logger = logging.getLogger('socketio.server')
-        socketio.logger.setLevel(logging.DEBUG)  # Set to DEBUG for more detailed logs
-        
-        # Add file handler for socketio logs
-        handler = logging.FileHandler('logs/socketio.log')
-        handler.setLevel(logging.DEBUG)
-        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-        handler.setFormatter(formatter)
-        socketio.logger.addHandler(handler)
-    
-    if not hasattr(socketio, 'engineio_logger'):
-        import logging
-        socketio.engineio_logger = logging.getLogger('engineio.server')
-        socketio.engineio_logger.setLevel(logging.DEBUG)  # Set to DEBUG for more detailed logs
-        
-        # Add file handler for engineio logs
-        handler = logging.FileHandler('logs/engineio.log')
-        handler.setLevel(logging.DEBUG)
-        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-        handler.setFormatter(formatter)
-        socketio.engineio_logger.addHandler(handler)
     
     # Track active users and their conversations
     active_users: Dict[str, Dict[str, Any]] = {}
@@ -120,32 +64,17 @@ def setup_websocket(app, chatbot=None):
     @socketio.on('connect')
     def handle_connect():
         """Handle new WebSocket connection."""
-        try:
-            logger.info(f"New WebSocket connection from {request.remote_addr} (SID: {request.sid})")
-            logger.debug(f"Connection headers: {dict(request.headers)}")
-            logger.debug(f"Session: {dict(session) if hasattr(session, '__dict__') else 'No session data'}")
-            
-            # If user is authenticated, add to active users
-            if hasattr(current_user, 'is_authenticated') and current_user.is_authenticated:
-                user_id = str(current_user.get_id())
-                logger.info(f"Authenticated user connected: {current_user.username} (ID: {user_id})")
-                
-                # Add user to active users
-                active_users[user_id] = {
-                    'sid': request.sid,
-                    'last_active': datetime.utcnow(),
-                    'conversation_id': None
-                }
-                logger.debug(f"Active users: {len(active_users)}")
-            else:
-                logger.warning("Unauthenticated connection attempt")
-                # Optionally, you can disconnect unauthenticated users
-                # return False  # This will reject the connection
-                
-        except Exception as e:
-            logger.error(f"Error in handle_connect: {str(e)}", exc_info=True)
-            # Re-raise the exception to ensure the connection is properly closed
-            raise
+        logger.info(f"Client connected: {request.sid}")
+        
+        # If user is authenticated, add to active users
+        if hasattr(current_user, 'is_authenticated') and current_user.is_authenticated:
+            user_id = str(current_user.get_id())
+            active_users[user_id] = {
+                'sid': request.sid,
+                'conversation_id': None,
+                'last_active': datetime.utcnow()
+            }
+            logger.info(f"User {user_id} connected with SID {request.sid}")
     
     @socketio.on('disconnect')
     def handle_disconnect():
@@ -193,97 +122,173 @@ def setup_websocket(app, chatbot=None):
             'timestamp': datetime.utcnow().isoformat()
         }, room=conversation_id)
     
-    @socketio.on('new_message')
-    @authenticated_only
-    async def handle_message(data: Dict[str, Any]):
-        """
-        Handle incoming chat messages asynchronously.
-        """
-        if not data or 'message' not in data:
-            emit('error', {'message': 'Missing message'})
+@socketio.on('send_message')
+@authenticated_only
+async def handle_message(data: Dict[str, Any]):
+    """
+    Handle incoming chat messages asynchronously.
+    """
+    if not data or 'message' not in data:
+        emit('error', {'message': 'Missing message'})
+        return
+        
+    user_id = str(current_user.get_id())
+    message = str(data['message'])
+    conversation_id = data.get('conversation_id', f'user_{user_id}_default')
+    
+    # Log the received message
+    print(f"Received message from user {user_id} in conversation {conversation_id}: {message}")
+    
+    # Make sure user is in the conversation
+    if user_id not in active_users or active_users[user_id].get('conversation_id') != conversation_id:
+        join_room(conversation_id)
+        if user_id not in active_users:
+            active_users[user_id] = {}
+        active_users[user_id]['conversation_id'] = conversation_id
+    
+    active_users[user_id]['last_active'] = datetime.utcnow()
+    
+    # Process the message with the chatbot
+    try:
+        # Get the Chatbot instance from the app context
+        chatbot = current_app.extensions.get('chatbot')
+        
+        if not chatbot:
+            logger.error("Chatbot not found in app extensions")
+            emit('error', {'message': 'Chatbot not initialized'}, room=conversation_id)
             return
-            
-        user_id = str(current_user.get_id())
-        message = str(data['message'])
-        conversation_id = data.get('conversation_id', f'user_{user_id}_default')
         
-        # Log the received message
-        print(f"Received message from user {user_id} in conversation {conversation_id}: {message}")
+        # Immediately acknowledge receipt of the message
+        emit('message_received', {
+            'message': 'Processing your message...',
+            'conversation_id': conversation_id,
+            'timestamp': datetime.utcnow().isoformat()
+        }, room=conversation_id)
         
-        # Make sure user is in the conversation
-        if user_id not in active_users or active_users[user_id].get('conversation_id') != conversation_id:
-            join_room(conversation_id)
-            if user_id not in active_users:
-                active_users[user_id] = {}
-            active_users[user_id]['conversation_id'] = conversation_id
-        
-        active_users[user_id]['last_active'] = datetime.utcnow()
-        
-        # Process the message with the chatbot
+        # Process the message
         try:
-            # Get the Chatbot instance from the app context
-            chatbot = current_app.extensions.get('chatbot')
+            print(f"Processing message with chatbot: {message}")
+            response = await chatbot.process_message(
+                message=message,
+                conversation_id=conversation_id,
+                user_id=user_id,
+                language=data.get('language', 'en')
+            )
             
-            if not chatbot:
-                logger.error("Chatbot not found in app extensions")
-                emit('error', {'message': 'Chatbot not initialized'}, room=conversation_id)
-                return
+            print(f"Chatbot response: {response}")
             
-            # Immediately acknowledge receipt of the message
-            emit('message_received', {
-                'message': 'Processing your message...',
+            # Broadcast the response to the conversation room
+            emit('new_message', {
+                'user_id': 'bot',
+                'message': response.get('response', 'No response generated'),
                 'conversation_id': conversation_id,
-                'timestamp': datetime.utcnow().isoformat()
+                'timestamp': datetime.utcnow().isoformat(),
+                'suggestions': response.get('suggestions', [])
             }, room=conversation_id)
-            
-            # Process the message
-            try:
-                print(f"Processing message with chatbot: {message}")
-                response = await chatbot.process_message(
-                    message=message,
-                    conversation_id=conversation_id,
-                    user_id=user_id,
-                    language=data.get('language', 'en')
-                )
-                
-                print(f"Chatbot response: {response}")
-                
-                # Broadcast the response to the conversation room
-                emit('new_message', {
-                    'user_id': 'bot',
-                    'message': response.get('response', 'No response generated'),
-                    'conversation_id': conversation_id,
-                    'timestamp': datetime.utcnow().isoformat(),
-                    'suggestions': response.get('suggestions', [])
-                }, room=conversation_id)
-                
-            except Exception as e:
-                logger.error(f"Error in message processing: {str(e)}", exc_info=True)
-                emit('error', {
-                    'message': f'Error processing message: {str(e)}',
-                    'conversation_id': conversation_id
-                }, room=conversation_id)
             
         except Exception as e:
-            logger.error(f"Error in handle_message: {str(e)}", exc_info=True)
+            logger.error(f"Error in message processing: {str(e)}", exc_info=True)
             emit('error', {
-                'message': 'Internal server error',
+                'message': f'Error processing message: {str(e)}',
                 'conversation_id': conversation_id
             }, room=conversation_id)
+        
+    except Exception as e:
+        logger.error(f"Error in handle_message: {str(e)}", exc_info=True)
+        emit('error', {
+            'message': 'Internal server error',
+            'conversation_id': conversation_id
+        }, room=conversation_id)
+            
+        # Process the message
+        try:
+            response = await chatbot.process_message(
+                message=message,
+                conversation_id=conversation_id,
+                user_id=user_id,
+                language=data.get('language', 'en')
+            )
+                
+            # Broadcast the response to the conversation room
+            emit('new_message', {
+                'user_id': 'bot',
+                'message': response.get('response', 'No response generated'),
+                'conversation_id': conversation_id,
+                'timestamp': datetime.utcnow().isoformat(),
+                'suggestions': response.get('suggestions', [])
+            }, room=conversation_id)
+                
+        except Exception as e:
+            logger.error(f"Error in message processing: {str(e)}", exc_info=True)
+            emit('error', {
+                'message': f'Error processing message: {str(e)}',
+                'conversation_id': conversation_id
+            }, room=conversation_id)
+            
+    except Exception as e:
+        logger.error(f"Error processing message: {str(e)}", exc_info=True)
+        emit('error', {'message': 'Error processing message'})
     
     @socketio.on('typing')
     @authenticated_only
     def handle_typing(data: Dict[str, Any]):
         """Handle typing indicators."""
         user_id = str(current_user.get_id())
-        if user_id not in active_users:
-            return
-            
-        conversation_id = active_users[user_id].get('conversation_id')
+        if user_id in active_users and 'conversation_id' in active_users[user_id]:
+            emit('user_typing', {
+                'user_id': user_id,
+                'is_typing': data.get('is_typing', False)
+            }, room=active_users[user_id]['conversation_id'])
+    
+    @socketio.on('get_history')
+    @authenticated_only
+    def handle_get_history(data: Dict[str, Any] = None):
+        """Get conversation history."""
+        user_id = str(current_user.get_id())
+        conversation_id = None
+        
+        if data and 'conversation_id' in data:
+            conversation_id = str(data['conversation_id'])
+        elif user_id in active_users and 'conversation_id' in active_users[user_id]:
+            conversation_id = active_users[user_id]['conversation_id']
+        
         if not conversation_id:
+            emit('error', {'message': 'No conversation specified'})
             return
-            
+        
+        try:
+            history = chatbot.get_conversation_history(conversation_id)
+            emit('conversation_history', {
+                'conversation_id': conversation_id,
+                'messages': history
+            })
+        except Exception as e:
+            logger.error(f"Error getting conversation history: {str(e)}")
+            emit('error', {'message': 'Error getting conversation history'})
+    
+    @socketio.on('disconnect')
+    def handle_disconnect():
+        """Handle WebSocket disconnection."""
+        logger.info(f"Client disconnected: {request.sid}")
+        
+        # Remove from active users if authenticated
+        if current_user.is_authenticated:
+            user_id = current_user.get_id()
+            if user_id in active_users:
+                del active_users[user_id]
+                logger.info(f"User {user_id} disconnected")
+    
+    @socketio.on('typing')
+    @authenticated_only
+    def handle_typing(data):
+        """Handle typing indicators."""
+        user_id = current_user.get_id()
+        conversation_id = data.get('conversation_id')
         is_typing = data.get('is_typing', False)
+        
+        if not conversation_id or user_id not in active_users:
+            return
+        
         active_users[user_id]['typing'] = is_typing
         active_users[user_id]['last_active'] = datetime.utcnow()
         
@@ -295,7 +300,9 @@ def setup_websocket(app, chatbot=None):
             'timestamp': datetime.utcnow().isoformat()
         }, room=conversation_id, include_self=False)
     
-    # Removed duplicate send_message handler
+    @socketio.on('send_message')
+    def handle_send_message(data):
+        """Handle messages from the client and forward to the chatbot."""
         try:
             # Get user info
             user_id = 'anonymous'
@@ -454,22 +461,5 @@ def setup_websocket(app, chatbot=None):
                 'message': 'An unexpected error occurred',
                 'details': str(e)
             }, room=request.sid)
-    
-    # Add test endpoint
-    @socketio.on('test')
-    def handle_test(data):
-        print("\n" + "="*50)
-        print("🧪 Test endpoint called")
-        print(f"📡 SID: {request.sid}")
-        print(f"📦 Data: {data}")
-        print("="*50 + "\n")
-        
-        # Send response back to client
-        emit('test_response', {
-            'status': 'success',
-            'message': 'Test successful!',
-            'data_received': data,
-            'timestamp': datetime.utcnow().isoformat()
-        })
     
     return socketio

@@ -1,0 +1,47 @@
+{
+  "document_processor": {
+    "docs_folder": "docs",
+    "chunk_size": 1000,
+    "chunk_overlap": 200,
+    "supported_file_types": ["pdf", "docx", "txt", "csv", "xlsx"],
+    "max_document_size_mb": 10
+  },
+  "llm": {
+    "provider": "lmstudio",  // Options: "lmstudio", "ollama", "openai"
+    "model_name": "gpt-3.5-turbo",
+    "temperature": 0.7,
+    "max_tokens": 1000,
+    "api_base": "http://localhost:1234/v1",
+    "api_key": "your-api-key-here"  // Not required for LM Studio/Ollama
+  },
+  "embedding": {
+    "model_name": "all-MiniLM-L6-v2",
+    "device": "cpu"  // "cuda" if you have a GPU
+  },
+  "vector_store": {
+    "persist_directory": "vector_store",
+    "similarity_metric": "cosine"
+  },
+  "server": {
+    "host": "0.0.0.0",
+    "port": 5000,
+    "debug": true,
+    "secret_key": "generate-a-secure-secret-key"
+  },
+  "ui": {
+    "title": "AI Document Chat",
+    "description": "Chat with your documents using AI",
+    "default_theme": "system",  // "light", "dark", or "system"
+    "enable_voice_input": true
+  },
+  "rate_limiting": {
+    "enabled": true,
+    "default_limit": "100 per minute"
+  },
+  "logging": {
+    "level": "INFO",  // DEBUG, INFO, WARNING, ERROR, CRITICAL
+    "file": "app.log",
+    "max_size_mb": 10,
+    "backup_count": 5
+  }
+}

@@ -14,8 +14,7 @@
     <!-- Font Awesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- Socket.IO -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
+    <!-- No external Socket.IO CDN - we'll use a direct connection without it -->
     
     <style>
         /* Loading animation */
@@ -214,19 +213,87 @@
         </div>
     </div>
     
-    <!-- JavaScript -->
-    <script src="{{ url_for('static', filename='js/chat.js') }}"></script>
+    <!-- JavaScript - Using inline script to avoid any loading/caching issues -->
     <script>
+        // Direct AJAX-based chat implementation without Socket.IO dependency
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('Initializing simple chat implementation...');
+            
+            // DOM Elements
+            const chatMessages = document.getElementById('chat-messages');
+            const questionForm = document.getElementById('question-form');
+            const questionInput = document.getElementById('question-input');
+            
+            // Function to add a message to the chat
+            function addMessage(type, content) {
+                if (!chatMessages) return;
+                
+                const messageElement = document.createElement('div');
+                messageElement.classList.add('message', type);
+                
+                messageElement.innerHTML = `
+                    <div class="message-content">
+                        <p>${content}</p>
+                        <span class="timestamp">${new Date().toLocaleTimeString()}</span>
+                    </div>
+                `;
+                
+                chatMessages.appendChild(messageElement);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+            
+            // Add a welcome message
+            addMessage('system', 'Chat initialized using direct AJAX fallback. Socket.IO will be fixed in the next update.');
+            
+            // Handle form submission using AJAX instead of WebSockets
+            if (questionForm) {
+                questionForm.addEventListener('submit', function(event) {
+                    event.preventDefault();
+                    
+                    const message = questionInput.value.trim();
+                    if (!message) return;
+                    
+                    // Add user message
+                    addMessage('user', message);
+                    
+                    // Clear input
+                    questionInput.value = '';
+                    
+                    // Show a temporary processing message
+                    addMessage('system', 'Processing your message...');
+                    
+                    // Send via AJAX instead of WebSocket
+                    fetch('/api/chat/message', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            message: message,
+                            conversation_id: 'direct_' + Date.now()
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        // Add bot response
+                        addMessage('bot', data.message || 'No response received');
+                    })
+                    .catch(error => {
+                        console.error('Error sending message:', error);
+                        addMessage('system', 'Error: Could not send message. Please try again.');
+                    });
+                });
+            }
+            
+            console.log('Simple chat implementation initialized');
+        });
+        
         // Hide loading screen when the page is fully loaded
         window.addEventListener('load', () => {
             const loadingScreen = document.getElementById('loading-screen');
             if (loadingScreen) {
                 loadingScreen.classList.add('hidden');
-                
-                // Remove from DOM after animation completes
-                setTimeout(() => {
-                    loadingScreen.remove();
-                }, 300);
+                setTimeout(() => loadingScreen.remove(), 300);
             }
         });
     </script>
