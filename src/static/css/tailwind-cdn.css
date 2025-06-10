@@ -1,0 +1,24 @@
+/* Tailwind CDN base for prototyping - will be replaced by full build for production */
+@import url('https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css');
+
+/* Custom utility for fade-in animation */
+@layer utilities {
+  .animate-fade-in {
+    animation: fadeIn 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(24px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Accessibility: Always show focus outlines for keyboard users */
+:focus-visible {
+  outline: 2px solid #6366f1;
+  outline-offset: 2px;
+}
+
+/* Remove unused legacy or commented CSS (none present) */
+
+/* --- End custom polish --- */

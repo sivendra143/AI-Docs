@@ -5,117 +5,143 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard - PDF Chatbot</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin/admin.css') }}">
+    <!-- Old CSS commented out for Tailwind prototyping -->
+    <!-- <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}"> -->
+    <!-- <link rel="stylesheet" href="{{ url_for('static', filename='css/admin/admin.css') }}"> -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/tailwind-cdn.css') }}">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <!-- Chart.js for admin analytics graphs -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
 </head>
-<body class="protected-page">
-    <div class="app-container" id="admin-panel">
-        <header>
-            <h1>PDF Chatbot Admin</h1>
-            <div class="header-actions">
-                <a href="/" class="nav-link">Chat</a>
-                <button id="logout-btn" class="logout-btn">Logout</button>
-                <div class="theme-toggle">
-                    <button id="theme-toggle-btn">
-                        <span class="light-icon">☀️</span>
-                        <span class="dark-icon">🌙</span>
-                    </button>
-                </div>
+<body class="bg-gray-50 min-h-screen font-inter">
+    <div class="max-w-6xl mx-auto p-4">
+        <!-- Header -->
+        <header class="flex flex-col md:flex-row md:items-center md:justify-between py-4 border-b border-gray-200 mb-6 gap-2">
+            <h1 class="text-2xl font-bold text-blue-700">PDF Chatbot Admin</h1>
+            <div class="flex items-center gap-4">
+                <a href="/" class="text-blue-600 hover:underline font-medium">Chat</a>
+                <button id="logout-btn" class="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition">Logout</button>
+                <button id="theme-toggle-btn" class="p-2 rounded hover:bg-gray-200 transition">
+                    <span class="light-icon">☀️</span>
+                    <span class="dark-icon">🌙</span>
+                </button>
             </div>
         </header>
 
-        <main>
-            <div class="admin-controls">
-                <button id="refresh-analytics" class="action-btn">Refresh Data</button>
+        <main class="flex flex-col gap-8">
+            <!-- Controls -->
+            <div class="flex justify-end mb-2">
+                <button id="refresh-analytics" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition">Refresh Data</button>
             </div>
-            <div class="admin-card admin-section">
-                <h2><span class="section-icon">👤</span>Users</h2>
-                <input type="text" id="user-search" class="admin-search-bar" placeholder="Search users..." autocomplete="off" />
-                <table class="admin-table" id="user-table">
-                    <thead>
-                        <tr>
-                            <th class="sortable" data-key="id">ID</th>
-                            <th class="sortable" data-key="username">Username</th>
-                            <th class="sortable" data-key="email">Email</th>
-                            <th class="sortable" data-key="is_admin">Admin</th>
-                            <th class="sortable" data-key="is_active">Active</th>
-                            <th class="sortable" data-key="last_login">Last Login</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="user-list"><tr><td colspan="7">Loading users...</td></tr></tbody>
-                </table>
-                <div class="pagination" id="user-pagination"></div>
-            </div>
-            <div class="admin-card admin-section">
-                <h2><span class="section-icon">📄</span>Documents</h2>
-                <input type="text" id="document-search" class="admin-search-bar" placeholder="Search documents..." autocomplete="off" />
-                <table class="admin-table" id="document-table">
-                    <thead>
-                        <tr>
-                            <th class="sortable" data-key="id">ID</th>
-                            <th class="sortable" data-key="filename">Filename</th>
-                            <th class="sortable" data-key="owner">Owner</th>
-                            <th class="sortable" data-key="uploaded_at">Uploaded</th>
-                            <th class="sortable" data-key="size">Size</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="document-list"><tr><td colspan="6">Loading documents...</td></tr></tbody>
-                </table>
-                <div class="pagination" id="document-pagination"></div>
-            </div>
-            <div class="admin-card analytics-modern-card">
-    <div class="analytics-header">
-        <span class="analytics-icon">📈</span>
-        <span class="analytics-title">Analytics</span>
+            <!-- Users/Docs -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <!-- Users -->
+                <div class="bg-white/70 backdrop-blur-lg rounded-2xl shadow-2xl p-8 flex flex-col gap-4 border border-blue-100 transition-all duration-500 hover:shadow-blue-200">
+    <h2 class="flex items-center gap-2 text-xl font-bold text-blue-700 tracking-tight animate-fade-in"><span class="bg-blue-100 rounded-full p-2 text-blue-500">👤</span>Users</h2>
+    <input type="text" id="user-search" class="border-2 border-blue-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-400 outline-none transition-all duration-300 shadow-sm" placeholder="Search users..." autocomplete="off" />
+    <div class="overflow-x-auto rounded-lg mt-2">
+        <table class="min-w-full text-sm border-separate border-spacing-y-2" id="user-table">
+            <thead class="bg-gradient-to-r from-blue-50 to-blue-100">
+                <tr>
+                    <th class="px-3 py-2 font-semibold text-left text-blue-700">ID</th>
+                    <th class="px-3 py-2 font-semibold text-left text-blue-700">Username</th>
+                    <th class="px-3 py-2 font-semibold text-left text-blue-700">Email</th>
+                    <th class="px-3 py-2 font-semibold text-left text-blue-700">Admin</th>
+                    <th class="px-3 py-2 font-semibold text-left text-blue-700">Active</th>
+                    <th class="px-3 py-2 font-semibold text-left text-blue-700">Last Login</th>
+                    <th class="px-3 py-2 font-semibold text-left text-blue-700">Actions</th>
+                </tr>
+            </thead>
+            <tbody id="user-list" class="animate-fade-in">
+                <tr><td colspan="7" class="text-center py-4 text-blue-400">Loading users...</td></tr>
+            </tbody>
+        </table>
     </div>
-    <div class="analytics-stats">
-        <div class="stat users">
-            <span class="stat-icon">👤</span>
-            <span class="stat-label">Users</span>
-            <span class="stat-value" id="stat-users">-</span>
+    <div class="flex justify-center mt-2" id="user-pagination"></div>
+</div>
+                <!-- Documents -->
+                <div class="bg-white/70 backdrop-blur-lg rounded-2xl shadow-2xl p-8 flex flex-col gap-4 border border-green-100 transition-all duration-500 hover:shadow-green-200">
+    <h2 class="flex items-center gap-2 text-xl font-bold text-green-700 tracking-tight animate-fade-in"><span class="bg-green-100 rounded-full p-2 text-green-500">📄</span>Documents</h2>
+    <input type="text" id="document-search" class="border-2 border-green-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-green-400 outline-none transition-all duration-300 shadow-sm" placeholder="Search documents..." autocomplete="off" />
+    <div class="overflow-x-auto rounded-lg mt-2">
+        <table class="min-w-full text-sm border-separate border-spacing-y-2" id="document-table">
+            <thead class="bg-gradient-to-r from-green-50 to-green-100">
+                <tr>
+                    <th class="px-3 py-2 font-semibold text-left text-green-700">ID</th>
+                    <th class="px-3 py-2 font-semibold text-left text-green-700">Filename</th>
+                    <th class="px-3 py-2 font-semibold text-left text-green-700">Owner</th>
+                    <th class="px-3 py-2 font-semibold text-left text-green-700">Uploaded</th>
+                    <th class="px-3 py-2 font-semibold text-left text-green-700">Size</th>
+                    <th class="px-3 py-2 font-semibold text-left text-green-700">Actions</th>
+                </tr>
+            </thead>
+            <tbody id="document-list" class="animate-fade-in">
+                <tr><td colspan="6" class="text-center py-4 text-green-400">Loading documents...</td></tr>
+            </tbody>
+        </table>
+    </div>
+    <div class="flex justify-center mt-2" id="document-pagination"></div>
+</div>
+            </div>
+            <!-- Analytics -->
+            <div class="bg-white/80 backdrop-blur-lg rounded-2xl shadow-2xl p-8 flex flex-col gap-8 border border-purple-100 animate-fade-in">
+    <div class="flex items-center gap-3 mb-4">
+        <span class="text-3xl bg-gradient-to-tr from-purple-400 to-blue-400 text-white rounded-full p-2 shadow">📈</span>
+        <span class="text-xl font-bold text-purple-800 tracking-tight">Analytics</span>
+    </div>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-6">
+        <div class="flex flex-col items-center bg-gradient-to-br from-blue-100 to-blue-50 rounded-xl p-4 shadow border border-blue-200 animate-fade-in">
+            <span class="text-2xl">👤</span>
+            <span class="text-xs text-blue-700 font-semibold">Users</span>
+            <span class="text-2xl font-extrabold text-blue-800" id="stat-users">-</span>
         </div>
-        <div class="stat documents">
-            <span class="stat-icon">📄</span>
-            <span class="stat-label">Documents</span>
-            <span class="stat-value" id="stat-docs">-</span>
+        <div class="flex flex-col items-center bg-gradient-to-br from-green-100 to-green-50 rounded-xl p-4 shadow border border-green-200 animate-fade-in">
+            <span class="text-2xl">📄</span>
+            <span class="text-xs text-green-700 font-semibold">Documents</span>
+            <span class="text-2xl font-extrabold text-green-800" id="stat-docs">-</span>
         </div>
-        <div class="stat conversations">
-            <span class="stat-icon">💬</span>
-            <span class="stat-label">Conversations</span>
-            <span class="stat-value" id="stat-conv">-</span>
+        <div class="flex flex-col items-center bg-gradient-to-br from-purple-100 to-purple-50 rounded-xl p-4 shadow border border-purple-200 animate-fade-in">
+            <span class="text-2xl">💬</span>
+            <span class="text-xs text-purple-700 font-semibold">Conversations</span>
+            <span class="text-2xl font-extrabold text-purple-800" id="stat-conv">-</span>
         </div>
-        <div class="stat messages">
-            <span class="stat-icon">✉️</span>
-            <span class="stat-label">Messages</span>
-            <span class="stat-value" id="stat-msgs">-</span>
+        <div class="flex flex-col items-center bg-gradient-to-br from-orange-100 to-orange-50 rounded-xl p-4 shadow border border-orange-200 animate-fade-in">
+            <span class="text-2xl">✉️</span>
+            <span class="text-xs text-orange-700 font-semibold">Messages</span>
+            <span class="text-2xl font-extrabold text-orange-800" id="stat-msgs">-</span>
         </div>
     </div>
-    <div class="admin-chart-card"><canvas id="user-growth-chart"></canvas></div>
-    <div class="admin-chart-card"><canvas id="chat-activity-chart"></canvas></div>
-    <div class="admin-chart-card"><canvas id="top-users-chart"></canvas></div>
-    <button id="export-analytics-btn" class="admin-btn" style="float:right;">Export Analytics CSV</button>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div class="bg-white/60 rounded-xl shadow p-4 animate-fade-in"><canvas id="user-growth-chart"></canvas></div>
+        <div class="bg-white/60 rounded-xl shadow p-4 animate-fade-in"><canvas id="chat-activity-chart"></canvas></div>
+        <div class="bg-white/60 rounded-xl shadow p-4 animate-fade-in"><canvas id="top-users-chart"></canvas></div>
+    </div>
+    <div class="flex justify-end mt-4">
+        <button id="export-analytics-btn" class="px-6 py-2 bg-gradient-to-tr from-purple-600 to-blue-600 text-white rounded-lg shadow-lg hover:scale-105 hover:bg-gradient-to-tr hover:from-blue-700 hover:to-purple-700 transition-all duration-200 font-semibold">Export Analytics CSV</button>
+    </div>
+</div>
+        </main>
+    </div>
 </div>
             <div class="admin-card admin-section">
                 <h2><span class="section-icon">⚙️</span>System Info</h2>
                 <ul>
-                    <li>App Version: 1.0</li>
-                    <li>Server Time: <span id="server-time">--</span></li>
-                </ul>
-            </div>
-        </main>
 
-        <div class="admin-divider"></div>
-        <footer>
-            <div class="footer-content">
-                <span>&copy; 2025 PDF Chatbot Admin Dashboard</span>
-            </div>
-        </footer>
-    </div>
+    <!-- Modern glassmorphism admin footer -->
+    <footer class="w-full mt-8 px-6 py-4 bg-white/60 dark:bg-gray-900/60 backdrop-blur-md rounded-t-2xl shadow-inner border-t border-blue-100 dark:border-blue-900 flex flex-col md:flex-row items-center justify-between gap-4 text-xs md:text-sm animate-fade-in">
+        <div class="flex items-center gap-2 text-blue-700 dark:text-blue-200 font-semibold">
+            <span class="text-lg">⚙️</span>
+            <span>System Info</span>
+            <span class="mx-2 hidden md:inline-block">|</span>
+            <span class="font-normal">App Version:</span> 1.0
+            <span class="mx-2 hidden md:inline-block">|</span>
+            <span class="font-normal">Server Time:</span> <span id="server-time">{{ server_time }}</span>
+        </div>
+        <div class="flex items-center gap-2 text-gray-500 dark:text-gray-400 font-medium">
+            <span>&copy; 2025 PDF Chatbot <span class="hidden md:inline">Admin Dashboard</span></span>
+        </div>
+    </footer>
 
     <!-- Modal Dialog -->
     <div id="modal-bg" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.25);z-index:1000;"></div>

@@ -4,73 +4,146 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PDF Chatbot</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/voice.css') }}">
+    <!-- Old CSS commented out for Tailwind prototyping -->
+    <!-- <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}"> -->
+    <!-- <link rel="stylesheet" href="{{ url_for('static', filename='css/voice.css') }}"> -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/tailwind-cdn.css') }}">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 </head>
-<body>
-    <div class="app-container">
-        <header class="chat-header">
-            <div class="header-left">
-                <img src="/static/img/logo.svg" alt="Logo" class="chat-logo" style="height:2.1rem;width:2.1rem;vertical-align:middle;">
-                <span class="chat-title">PDF Chatbot</span>
+<body class="bg-gradient-to-br from-blue-50 via-purple-50 to-blue-100 min-h-screen font-inter">
+    <div class="max-w-3xl mx-auto p-4">
+        <!-- Header -->
+        <header class="flex items-center justify-between py-6 border-b border-blue-100 mb-8 animate-fade-in">
+            <div class="flex items-center gap-3">
+                <img src="/static/img/logo.svg" alt="Logo" class="h-12 w-12 shadow-lg rounded-full bg-white/70">
+                <span class="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-blue-700 to-purple-600 bg-clip-text text-transparent">PDF Chatbot</span>
             </div>
-            <div class="header-actions">
-                <a href="/admin" class="nav-link">Admin</a>
-                <div class="theme-toggle">
-                    <button id="theme-toggle-btn">
-                        <span class="light-icon">☀️</span>
-                        <span class="dark-icon">🌙</span>
-                    </button>
-                </div>
+            <div class="flex items-center gap-4">
+                <a href="/admin" class="text-lg font-semibold text-blue-600 hover:text-purple-600 transition underline-offset-4 hover:underline">Admin</a>
+                <button id="theme-toggle-btn" class="p-3 rounded-full bg-white/70 hover:bg-blue-100 transition shadow">
+                    <span class="light-icon">☀️</span>
+                    <span class="dark-icon">🌙</span>
+                </button>
             </div>
         </header>
 
+        <!-- Main Chat Card -->
         <main>
-            <div class="card-like chat-card">
-            <div class="chat-card">
-                <div class="chat-container">
-                    <div id="chat-messages">
-                        <div class="message system">
-                            <div class="message-avatar system-avatar">💡</div>
-                            <div class="message-content">
-                                <p>Welcome to PDF Chatbot! Ask me anything about the documents in your folder.</p>
-                            </div>
-                        </div>
+            <div class="bg-white/80 backdrop-blur-lg rounded-3xl shadow-2xl p-8 mb-8 border border-blue-100 animate-fade-in">
+                <div class="flex flex-col gap-6">
+                    <!-- Chat Messages -->
+                    <!-- Modernized, scrollable chat messages area with clear sender distinction -->
+<div id="chat-messages" class="flex flex-col gap-6 min-h-[120px] max-h-[60vh] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-blue-200 dark:scrollbar-thumb-blue-900 scrollbar-track-transparent" tabindex="0">
+    <!-- Example Assistant Message -->
+    <div class="flex items-start gap-3 animate-fade-in mt-2">
+        <div class="rounded-full bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300 p-3 shadow">🤖</div>
+        <div class="bg-white/90 dark:bg-blue-900/90 backdrop-blur-md rounded-2xl px-5 py-3 shadow text-gray-800 dark:text-blue-100 border border-blue-200 dark:border-blue-800 relative">
+            <span class="absolute -top-5 left-2 text-xs text-blue-500 dark:text-blue-300 font-semibold">PDF Assistant</span>
+            <p class="font-medium mt-2">It seems like the provided context is in Hindi and from a document that appears to be related to the Official Languages Act, 2003. The specific part of the document mentions "पंचायत" which translates to "Panchayat".<br><br>However, I couldn't find any direct reference to your question "Hi" in the provided context. Could you please provide more information or clarify what you would like me to assist with?</p>
+            <!-- Modern Translate button and language selector -->
+            <div class="flex items-center gap-2 mt-4">
+                <button class="px-3 py-1 rounded-lg bg-gradient-to-br from-blue-400 to-purple-400 text-white font-semibold shadow hover:scale-105 transition">Translate</button>
+                <select class="rounded px-2 py-1 border border-blue-200 dark:border-blue-800 bg-white dark:bg-blue-950 text-blue-700 dark:text-blue-200 focus:ring-2 focus:ring-blue-400">
+                    <option value="vn">vn Vietnamese</option>
+                    <option value="en">en English</option>
+                    <option value="hi">hi Hindi</option>
+                    <!-- Add more languages as needed -->
+                </select>
+            </div>
+        </div>
+    </div>
+    <!-- Example User Message: fully right-aligned, avatar grouped -->
+<div class="flex flex-row-reverse items-end gap-3 self-end animate-fade-in mb-4">
+    <div class="rounded-full bg-purple-200 dark:bg-purple-800 text-purple-700 dark:text-purple-200 p-3 shadow">🧑‍💻</div>
+    <div class="bg-gradient-to-br from-purple-500 to-blue-500 dark:from-purple-700 dark:to-blue-700 rounded-2xl px-5 py-3 shadow text-white dark:text-blue-100 font-semibold border border-purple-300 dark:border-purple-900" style="text-shadow:0 1px 6px rgba(0,0,0,0.14); min-width:120px;">
+        <span class="block text-xs text-purple-100/90 dark:text-blue-200/70 font-semibold mb-1 text-right">You EN</span>
+        <p>Hi</p>
+    </div>
+</div>
+    <!-- Loader/Typing indicator for Assistant -->
+    <div id="assistant-typing-indicator" class="flex items-start gap-3 animate-fade-in mb-2 hidden">
+        <div class="rounded-full bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300 p-3 shadow">🤖</div>
+        <div class="bg-white/80 dark:bg-blue-900/80 backdrop-blur-md rounded-2xl px-5 py-3 shadow border border-blue-100 dark:border-blue-900 flex items-center">
+            <span class="typing-dot bg-blue-400 dark:bg-blue-300"></span>
+            <span class="typing-dot bg-blue-400 dark:bg-blue-300"></span>
+            <span class="typing-dot bg-blue-400 dark:bg-blue-300"></span>
+        </div>
+    </div>
+    <!-- More messages will be dynamically rendered here by JS -->
+</div>
+<style>
+/* Typing indicator animation */
+.typing-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 5px;
+  border-radius: 50%;
+  opacity: 0.7;
+  animation: typing-bounce 1.2s infinite both;
+}
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+@keyframes typing-bounce {
+  0%, 80%, 100% { transform: scale(0.7); opacity: 0.5; }
+  40% { transform: scale(1); opacity: 1; }
+}
+</style>
+<script>
+// Always scroll chat to bottom on load and when new messages are added
+function scrollChatToBottom() {
+    const chat = document.getElementById('chat-messages');
+    if (chat) chat.scrollTop = chat.scrollHeight;
+}
+window.addEventListener('DOMContentLoaded', scrollChatToBottom);
+// If you dynamically add messages via JS, call scrollChatToBottom() after update
+
+// Show/hide loader (typing indicator) via JS
+function showAssistantTyping(show=true) {
+    const indicator = document.getElementById('assistant-typing-indicator');
+    if (indicator) indicator.classList.toggle('hidden', !show);
+}
+// Example: showAssistantTyping(true) to show, showAssistantTyping(false) to hide
+</script>
+<script>
+// Always scroll chat to bottom on load and when new messages are added
+function scrollChatToBottom() {
+    const chat = document.getElementById('chat-messages');
+    if (chat) chat.scrollTop = chat.scrollHeight;
+}
+window.addEventListener('DOMContentLoaded', scrollChatToBottom);
+// If you dynamically add messages via JS, call scrollChatToBottom() after update
+</script>
+                    <!-- Suggestions -->
+                    <div id="suggestions-container" class="flex flex-wrap gap-2"></div>
+                    <!-- Voice Input -->
+                    <div class="flex items-center gap-3 animate-fade-in">
+                        <button id="start-recording" class="px-5 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg shadow hover:scale-105 hover:from-blue-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all">🎤 Start Recording</button>
+                        <button id="stop-recording" class="px-5 py-2 bg-gray-300 text-gray-600 rounded-lg shadow hover:bg-gray-400 transition-all" disabled>⏹ Stop Recording</button>
+                        <div id="recording-status" class="text-sm text-gray-500"></div>
                     </div>
-                    <div class="suggestions-container" id="suggestions-container">
-                        <!-- Suggestions will be added here dynamically -->
-                    </div>
-                    <div class="voice-input-container">
-                        <button id="start-recording" class="voice-btn">
-                            <span class="mic-icon"></span> Start Recording
-                        </button>
-                        <button id="stop-recording" class="voice-btn" disabled>
-                            <span class="stop-icon"></span> Stop Recording
-                        </button>
-                        <div id="recording-status"></div>
-                    </div>
-                    <div class="input-container">
-                        <form id="question-form">
-                            <input type="text" id="question-input" placeholder="Ask a question..." autocomplete="off">
-                            <button type="submit" id="send-btn"><span class="send-icon">➤</span></button>
-                        </form>
-                    </div>
+                    <!-- Input Form -->
+                    <form id="question-form" class="flex items-center gap-3 mt-2 animate-fade-in">
+                        <input type="text" id="question-input" placeholder="Ask a question..." autocomplete="off" class="flex-1 px-5 py-3 border-2 border-blue-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 shadow transition-all">
+                        <button type="submit" id="send-btn" class="px-5 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl shadow-lg hover:scale-105 hover:from-blue-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-400 transition-all text-lg font-bold">➤</button>
+                    </form>
                 </div>
             </div>
         </main>
 
-        <footer>
-            <div class="actions">
-                <button id="refresh-btn" class="action-btn">Refresh Documents</button>
-                <select id="theme-select" class="theme-select">
+        <!-- Footer -->
+        <footer class="flex flex-col md:flex-row items-center justify-between gap-4 border-t border-blue-100 pt-6 animate-fade-in">
+            <div class="flex items-center gap-4">
+                <button id="refresh-btn" class="px-4 py-2 bg-gradient-to-r from-blue-100 to-purple-100 text-blue-700 rounded-lg shadow hover:bg-blue-200 transition font-semibold">Refresh Documents</button>
+                <select id="theme-select" class="border-2 border-blue-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none">
                     <option value="light">Light Theme</option>
                     <option value="dark">Dark Theme</option>
                     <option value="system">System Default</option>
                 </select>
             </div>
-            <div class="info">
-                <p>PDF Chatbot | <span id="status-indicator">Ready</span></p>
+            <div class="text-base text-blue-700 font-semibold">
+                PDF Chatbot | <span id="status-indicator" class="font-bold text-green-600">Ready</span>
             </div>
         </footer>
     </div>

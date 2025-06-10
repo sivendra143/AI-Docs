@@ -1,9 +1,10 @@
+/* Modernized Login Container - Glassmorphism & Tailwind Harmony */
 .login-container {
     display: flex;
     justify-content: center;
     align-items: center;
     min-height: 100vh;
-    background-color: var(--bg-secondary);
+    background: linear-gradient(135deg, #dbeafe 0%, #ede9fe 100%);
 }
 
 .login-card {

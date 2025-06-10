@@ -1,25 +1,26 @@
 :root {
-    --primary-color: #3b82f6;
-    --primary-hover: #2563eb;
-    --text-color: #1f2937;
-    --text-light: #6b7280;
-    --bg-color: #ffffff;
-    --bg-secondary: #f9fafb;
-    --border-color: #e5e7eb;
-    --shadow-color: rgba(0, 0, 0, 0.08);
+    /* Modernized palette and radii for new UI */
+    --primary-color: #6366f1;
+    --primary-hover: #4f46e5;
+    --text-color: #312e81;
+    --text-light: #818cf8;
+    --bg-color: #f8fafc;
+    --bg-secondary: #eef2ff;
+    --border-color: #c7d2fe;
+    --shadow-color: #6366f133;
     --success-color: #10b981;
     --error-color: #ef4444;
-    --system-msg-bg: #f8fafc;
-    --user-msg-bg: #eff6ff;
+    --system-msg-bg: #ede9fe;
+    --user-msg-bg: #dbeafe;
     --bot-msg-bg: #f0f9ff;
     --suggestion-bg: #f1f5f9;
-    --suggestion-hover: #e2e8f0;
-    --gradient-start: #3b82f6;
-    --gradient-end: #10b981;
-    --card-radius: 24px;
-    --btn-radius: 12px;
-    --input-radius: 16px;
-    --message-radius: 18px;
+    --suggestion-hover: #e0e7ff;
+    --gradient-start: #6366f1;
+    --gradient-end: #a78bfa;
+    --card-radius: 1.25rem;
+    --btn-radius: 0.7rem;
+    --input-radius: 1.1rem;
+    --message-radius: 1.1rem;
 }
 
 [data-theme="dark"] {

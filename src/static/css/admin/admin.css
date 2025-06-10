@@ -1,13 +1,16 @@
-/* Modern Admin Table Styles */
+/* Modernized Admin Table Styles - Glassmorphism & Tailwind Harmony */
 .admin-table {
     width: 100%;
     border-collapse: collapse;
     margin-bottom: 2rem;
-    background: var(--bg-secondary, #fff);
-    box-shadow: 0 2px 6px var(--shadow-color, #eee);
-    border-radius: 0.5rem;
+    background: rgba(255,255,255,0.80);
+    backdrop-filter: blur(8px);
+    box-shadow: 0 6px 32px #6366f133, 0 1.5px 8px #6366f11a;
+    border-radius: 1.25rem;
     overflow: hidden;
     font-size: 1rem;
+    border: 1.5px solid #c7d2fe;
+    transition: box-shadow 0.3s, background 0.3s;
 }
 .admin-table th, .admin-table td {
     padding: 0.75rem 1rem;
@@ -32,18 +35,36 @@
     cursor: pointer;
 }
 
-/* Action buttons */
+/* Modern Action Buttons - Gradient, Glass, and Tailwind Consistency */
 .admin-table button {
     margin: 0 0.25rem;
-    padding: 0.35rem 0.8rem;
+    padding: 0.5rem 1.1rem;
     border: none;
-    border-radius: 0.3rem;
-    background: var(--primary-color, #1976d2);
+    border-radius: 0.7rem;
+    background: linear-gradient(90deg, #6366f1 40%, #a78bfa 100%);
     color: #fff;
     cursor: pointer;
-    font-size: 0.95em;
-    transition: background 0.2s, box-shadow 0.2s;
+    font-size: 1em;
+    font-weight: 600;
+    box-shadow: 0 2px 8px #6366f122;
+    transition: background 0.2s, box-shadow 0.2s, transform 0.15s;
 }
+.admin-table button:hover {
+    filter: brightness(1.1);
+    box-shadow: 0 4px 16px #6366f133;
+    transform: scale(1.04);
+}
+.admin-table button.demote-btn {
+    background: linear-gradient(90deg, #fde68a 40%, #fbbf24 100%);
+    color: #222;
+}
+.admin-table button.promote-btn {
+    background: linear-gradient(90deg, #34d399 40%, #10b981 100%);
+}
+.admin-table button.delete-user-btn, .admin-table button.delete-doc-btn {
+    background: linear-gradient(90deg, #fca5a5 40%, #ef4444 100%);
+}
+
 .admin-table button.demote-btn {
     background: #fbc02d;
     color: #222;

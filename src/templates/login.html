@@ -4,30 +4,39 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - PDF Chatbot</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
+    <!-- Old CSS commented out for Tailwind prototyping -->
+    <!-- <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}"> -->
+    <!-- <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}"> -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/tailwind-cdn.css') }}">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 </head>
-<body>
-    <div class="login-container">
-        <div class="login-card">
-            <h1>PDF Chatbot</h1>
-            <h2>Login</h2>
-            <form id="login-form">
-                <div class="form-group">
-                    <label for="username">Username</label>
-                    <input type="text" id="username" name="username" required>
+<body class="bg-gradient-to-br from-blue-100 via-purple-100 to-blue-200 dark:from-blue-950 dark:via-purple-950 dark:to-blue-900 min-h-screen flex items-center justify-center font-inter">
+    <div class="w-full max-w-md p-6">
+        <div class="bg-white/80 dark:bg-blue-950/90 backdrop-blur-lg rounded-3xl shadow-2xl p-10 flex flex-col gap-6 border border-blue-100 dark:border-blue-900 animate-fade-in">
+            <div class="flex items-center justify-between mb-2">
+                <h1 class="text-3xl font-extrabold text-blue-700 dark:text-blue-200 text-center bg-gradient-to-r from-blue-700 to-purple-600 dark:from-blue-300 dark:to-purple-400 bg-clip-text text-transparent">PDF Chatbot</h1>
+                <button id="theme-toggle-btn" class="p-2 rounded-full bg-white/70 dark:bg-blue-900 hover:bg-blue-100 dark:hover:bg-blue-800 transition shadow ml-2" title="Toggle theme">
+                    <span class="light-icon">☀️</span>
+                    <span class="dark-icon">🌙</span>
+                </button>
+            </div>
+            <h2 class="text-xl font-semibold text-gray-700 dark:text-blue-100 text-center mb-4">Login</h2>
+            <form id="login-form" class="flex flex-col gap-5 animate-fade-in">
+                <div class="flex flex-col gap-2">
+                    <label for="username" class="text-sm font-medium text-blue-700 dark:text-blue-200">Username</label>
+                    <input type="text" id="username" name="username" required class="px-5 py-3 border-2 border-blue-200 dark:border-blue-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 shadow transition-all bg-white dark:bg-blue-900 text-gray-900 dark:text-blue-100">
                 </div>
-                <div class="form-group">
-                    <label for="password">Password</label>
-                    <input type="password" id="password" name="password" required>
+                <div class="flex flex-col gap-2">
+                    <label for="password" class="text-sm font-medium text-blue-700 dark:text-blue-200">Password</label>
+                    <input type="password" id="password" name="password" required class="px-5 py-3 border-2 border-blue-200 dark:border-blue-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 shadow transition-all bg-white dark:bg-blue-900 text-gray-900 dark:text-blue-100">
                 </div>
-                <div class="error-message" id="login-error"></div>
-                <button type="submit" class="login-btn">Login</button>
+                <div class="text-red-600 dark:text-red-400 text-sm min-h-[1.5em]" id="login-error"></div>
+                <button type="submit" class="w-full py-3 bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-800 dark:to-purple-700 text-white rounded-xl shadow-lg hover:scale-105 hover:from-blue-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-400 transition-all font-bold text-lg">Login</button>
             </form>
-            <div class="login-footer">
-                <p>Default credentials: admin / admin123</p>
-                <a href="/">Back to Chat</a>
+            <div class="flex flex-col items-center gap-2 mt-2 animate-fade-in">
+                <p class="text-xs text-gray-500 dark:text-blue-200">Default credentials: <span class="font-mono">admin / admin123</span></p>
+                <a href="/" class="text-blue-600 dark:text-blue-300 hover:underline text-sm">Back to Chat</a>
             </div>
         </div>
     </div>

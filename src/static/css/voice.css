@@ -1,11 +1,15 @@
+/* Modernized Voice Input Container - Glassmorphism & Tailwind Harmony */
 .voice-input-container {
     display: flex;
     align-items: center;
     gap: 1rem;
     margin-bottom: 1rem;
-    padding: 0.5rem;
-    border-radius: var(--btn-radius);
-    transition: all 0.3s ease;
+    padding: 0.5rem 1.2rem;
+    border-radius: 1.1rem;
+    background: rgba(255,255,255,0.80);
+    backdrop-filter: blur(8px);
+    box-shadow: 0 4px 16px #6366f122;
+    transition: all 0.3s;
 }
 
 .voice-btn {
