@@ -129,6 +129,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const langOptions = [
             {value: 'en', label: '🇺🇸 English'},
             {value: 'hi', label: '🇮🇳 Hindi'},
+            {value: 'te', label: '🇮🇳 Telugu'},
             {value: 'es', label: '🇪🇸 Spanish'},
             {value: 'fr', label: '🇫🇷 French'},
             {value: 'de', label: '🇩🇪 German'},
