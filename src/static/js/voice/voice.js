@@ -91,9 +91,9 @@ async function processRecording() {
     recordingStatus.textContent = 'Transcribing...';
     
     // Create audio blob and send to server
-    const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
     const formData = new FormData();
-    formData.append('audio', audioBlob);
+    formData.append('audio', audioBlob, 'recording.webm');
     
     try {
         const response = await fetch('/api/voice', {

@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import List, Dict, Any, Optional, Tuple
 from sqlalchemy import desc, func, or_
-from models import db, Conversation, Message, User
+from src.models import db, Conversation, Message, User
 
 class ConversationManager:
     """

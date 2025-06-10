@@ -75,6 +75,10 @@ def setup_app():
     if 'root' not in app.blueprints:
         app.register_blueprint(root_bp, url_prefix='/')
     
+    # Register voice input routes
+    from src.voice_input import setup_voice_routes
+    setup_voice_routes(app, chatbot)
+
     # Register Swagger (optional)
     try:
         from flask_swagger_ui import get_swaggerui_blueprint

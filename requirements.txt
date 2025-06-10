@@ -19,6 +19,7 @@ python-pptx==0.6.23
 python-pptx==0.6.23
 
 # LangChain and AI
+openai-whisper
 langchain==0.3.25
 langchain-community==0.3.24
 langchain-core==0.3.64

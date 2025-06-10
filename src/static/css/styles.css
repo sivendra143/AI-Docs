@@ -391,7 +391,7 @@ main {
     display: flex;
     flex-direction: column;
     height: calc(100vh - 140px);
-    max-width: 100%;
+    max-width: 100%4;
     margin: 0 auto;
     background-color: var(--bg-color);
     border-radius: 0.5rem;
