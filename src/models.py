@@ -85,3 +85,35 @@ class Message(db.Model):
     
     def __repr__(self):
         return f'<Message {self.id} - {self.content[:50]}>'
+
+
+class Document(db.Model):
+    __tablename__ = 'documents'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    filename = db.Column(db.String(255), nullable=False)
+    file_path = db.Column(db.String(512), nullable=False)
+    file_type = db.Column(db.String(10), nullable=False)
+    size = db.Column(db.Integer, default=0)  # Size in bytes
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True, index=True)
+    uploaded_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    is_processed = db.Column(db.Boolean, default=False)
+    is_public = db.Column(db.Boolean, default=False)
+    
+    # Relationships
+    user = db.relationship('User', backref='documents', lazy=True)
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'filename': self.filename,
+            'file_type': self.file_type,
+            'size': self.size,
+            'user_id': self.user_id,
+            'uploaded_at': self.uploaded_at.isoformat() if self.uploaded_at else None,
+            'is_processed': self.is_processed,
+            'is_public': self.is_public
+        }
+    
+    def __repr__(self):
+        return f'<Document {self.id} - {self.filename}>'

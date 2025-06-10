@@ -8,6 +8,8 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/admin/admin.css') }}">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <!-- Chart.js for admin analytics graphs -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
 </head>
 <body class="protected-page">
     <div class="app-container" id="admin-panel">
@@ -487,6 +489,8 @@
             }, 800);
         });
     </script>
+    <!-- Admin analytics script for stats animation -->
+    <script src="{{ url_for('static', filename='js/admin-analytics.js') }}"></script>
 </body>
 </html>
 

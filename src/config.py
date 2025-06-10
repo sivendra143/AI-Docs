@@ -24,8 +24,8 @@ class Config:
     # Format SQLite URI with forward slashes for Windows compatibility
     SQLALCHEMY_DATABASE_URI = f'sqlite:///{DB_PATH.replace(os.sep, "/")}'
     
-    print(f"\n📁 Database path: {DB_PATH}")
-    print(f"🔗 Database URI: {SQLALCHEMY_DATABASE_URI}")
+    print(f"\nDatabase path: {DB_PATH}")
+    print(f"Database URI: {SQLALCHEMY_DATABASE_URI}")
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
     # Upload settings

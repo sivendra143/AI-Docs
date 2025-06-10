@@ -1,12 +1,15 @@
 # document_processor.py
 
 import os
+import json
 from pypdf import PdfReader  # Using pypdf instead of PyMuPDF
 import docx
 import csv
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.embeddings import SentenceTransformerEmbeddings
 from langchain_community.vectorstores import FAISS
+from src.models import Document, db
+from datetime import datetime
 
 class DocumentProcessor:
     def __init__(self, docs_folder="./docs/", config_path="config.json"):
@@ -65,6 +68,9 @@ class DocumentProcessor:
             print(f"Documents folder '{self.docs_folder}' does not exist.")
             return
         
+        # Track documents in the database
+        existing_docs = {doc.file_path: doc for doc in Document.query.all()}
+        
         for filename in os.listdir(self.docs_folder):
             file_path = os.path.join(self.docs_folder, filename)
             
@@ -73,6 +79,7 @@ class DocumentProcessor:
                 
             print(f"Processing {file_path}...")
             text = ""
+            file_type = filename.split('.')[-1].lower() if '.' in filename else 'unknown'
             
             if filename.lower().endswith('.pdf'):
                 text = self._extract_text_from_pdf(file_path)
@@ -86,9 +93,33 @@ class DocumentProcessor:
                 print(f"Unsupported file format: {filename}")
                 continue
             
+            # Add or update document in database
+            if file_path in existing_docs:
+                doc = existing_docs[file_path]
+                doc.is_processed = bool(text)
+                doc.size = os.path.getsize(file_path)
+            else:
+                doc = Document(
+                    filename=filename,
+                    file_path=file_path,
+                    file_type=file_type,
+                    size=os.path.getsize(file_path),
+                    uploaded_at=datetime.utcnow(),
+                    is_processed=bool(text)
+                )
+                db.session.add(doc)
+            
             if text:
                 chunks = self.text_splitter.split_text(text)
                 all_chunks.extend(chunks)
+        
+        # Commit changes to database
+        try:
+            db.session.commit()
+            print(f"Database updated with {len(existing_docs)} documents")
+        except Exception as e:
+            db.session.rollback()
+            print(f"Error updating document database: {e}")
         
         if all_chunks:
             self.vector_store = FAISS.from_texts(all_chunks, self.embeddings)

@@ -247,7 +247,7 @@ def allowed_file(filename):
 def login():
     if request.method == 'GET':
         if current_user.is_authenticated:
-            return redirect(url_for('root.index'))
+            return redirect(url_for('root_bp.index'))
         return render_template('login.html')
         
     if current_user.is_authenticated:
@@ -447,16 +447,41 @@ def upload_document():
         filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
         file.save(filepath)
         
-        # Process the document (implement your document processing logic here)
-        # processor = current_app.config.get('document_processor')
-        # if processor:
-        #     processor.process_document(filepath)
-        
-        return jsonify({
-            'success': True,
-            'message': 'File uploaded successfully',
-            'filename': filename
-        })
+        # Save document to database
+        try:
+            file_type = filename.split('.')[-1].lower() if '.' in filename else 'unknown'
+            file_size = os.path.getsize(filepath)
+            
+            from .models import Document
+            doc = Document(
+                filename=filename,
+                file_path=filepath,
+                file_type=file_type,
+                size=file_size,
+                user_id=current_user.id,
+                uploaded_at=datetime.utcnow(),
+                is_processed=False
+            )
+            db.session.add(doc)
+            db.session.commit()
+            
+            # Process the document if processor is available
+            processor = current_app.config.get('document_processor')
+            if processor:
+                processor.process_documents()
+            
+            return jsonify({
+                'success': True,
+                'message': 'File uploaded successfully',
+                'filename': filename,
+                'document_id': doc.id
+            })
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({
+                'success': False,
+                'message': f'Error saving document to database: {str(e)}'
+            }), 500
     
     return jsonify({
         'success': False,
@@ -467,38 +492,64 @@ def upload_document():
 @api_bp.route('/documents/list')
 @login_required
 def list_documents():
-    docs_folder = current_app.config.get('DOCS_FOLDER', 'docs')
-    if not os.path.exists(docs_folder):
-        return jsonify([])
-    
-    files = []
-    for filename in os.listdir(docs_folder):
-        path = os.path.join(docs_folder, filename)
-        if os.path.isfile(path):
-            files.append({
-                'name': filename,
-                'size': os.path.getsize(path),
-                'modified': os.path.getmtime(path)
+    try:
+        from .models import Document
+        # Get documents for current user or public documents
+        documents = Document.query.filter(
+            (Document.user_id == current_user.id) | (Document.is_public == True)
+        ).all()
+        
+        doc_list = []
+        for doc in documents:
+            doc_list.append({
+                'id': doc.id,
+                'name': doc.filename,
+                'size': doc.size,
+                'modified': doc.uploaded_at.timestamp() if doc.uploaded_at else 0,
+                'type': doc.file_type,
+                'processed': doc.is_processed
             })
-    
-    return jsonify(files)
+        
+        return jsonify(doc_list)
+    except Exception as e:
+        print(f"Error listing documents: {e}")
+        # Fallback to file system if database query fails
+        docs_folder = current_app.config.get('DOCS_FOLDER', 'docs')
+        if not os.path.exists(docs_folder):
+            return jsonify([])
+        
+        files = []
+        for filename in os.listdir(docs_folder):
+            path = os.path.join(docs_folder, filename)
+            if os.path.isfile(path):
+                files.append({
+                    'name': filename,
+                    'size': os.path.getsize(path),
+                    'modified': os.path.getmtime(path)
+                })
+        
+        return jsonify(files)
 
 # Admin Routes
 @api_bp.route('/admin/users', methods=['GET'])
 @login_required
-def list_users():
-    if not current_user.is_admin:
-        return jsonify({'success': False, 'message': 'Unauthorized'}), 403
-    
+def admin_list_users():
+    if not getattr(current_user, 'is_admin', False):
+        return jsonify({'error': 'Forbidden', 'message': 'Admin access required'}), 403
     users = User.query.all()
-    return jsonify([{
-        'id': user.id,
-        'username': user.username,
-        'email': user.email,
-        'is_admin': user.is_admin,
-        'created_at': user.created_at.isoformat() if user.created_at else None,
-        'last_login': user.last_login.isoformat() if user.last_login else None
-    } for user in users])
+    user_list = [
+        {
+            'id': u.id,
+            'username': u.username,
+            'email': u.email,
+            'is_admin': u.is_admin,
+            'preferred_language': u.preferred_language,
+            'last_login': u.last_login.isoformat() if u.last_login else None,
+            'created_at': u.created_at.isoformat() if u.created_at else None,
+            'is_active': u.is_active
+        } for u in users
+    ]
+    return jsonify({'users': user_list})
 
 # System Routes
 @api_bp.route('/system/status')
@@ -536,3 +587,14 @@ def test_chat():
 @api_bp.route('/static/<path:path>')
 def serve_static(path):
     return send_from_directory('static', path)
+
+@api_bp.route('/api/document/preview/<filename>', methods=['GET'])
+@login_required
+def document_preview(filename):
+    import mimetypes, os
+    docs_folder = current_app.config.get('DOCS_FOLDER', 'docs')
+    file_path = os.path.join(docs_folder, filename)
+    if not os.path.exists(file_path):
+        return jsonify({'error': 'File not found'}), 404
+    mime_type, _ = mimetypes.guess_type(file_path)
+    return send_file(file_path, mimetype=mime_type or 'application/octet-stream')

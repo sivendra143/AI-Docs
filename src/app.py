@@ -67,6 +67,7 @@ def setup_app():
     
     # Register Blueprints
     from src.routes import api_bp, root_bp
+    from src.admin_routes import admin_bp
     
     # Only register the blueprints if they're not already registered
     if 'api' not in app.blueprints:
@@ -74,6 +75,9 @@ def setup_app():
     
     if 'root' not in app.blueprints:
         app.register_blueprint(root_bp, url_prefix='/')
+        
+    if 'admin' not in app.blueprints:
+        app.register_blueprint(admin_bp, url_prefix='/api/admin')
     
     # Register voice input routes
     from src.voice_input import setup_voice_routes
