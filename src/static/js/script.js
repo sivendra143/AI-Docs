@@ -74,17 +74,20 @@ document.addEventListener('DOMContentLoaded', function() {
     // Add a user message to the chat
     window.addUserMessage = function(text, lang = 'EN') {
         const messageDiv = document.createElement('div');
-        messageDiv.className = 'message user';
-        messageDiv.innerHTML = `
-            <div class="message-meta">
-                <span class="message-avatar user-avatar">🧑</span>
-                <span class="message-label">You</span>
-                <span class="message-lang">${lang}</span>
+        messageDiv.className = 'flex flex-row-reverse flex items-end gap-3 animate-fade-in mt-2';
+        
+        const innerDiv = document.createElement('div');
+        innerDiv.className = 'message user flex flex-row-reverse items-end gap-3 self-end animate-fade-in mb-4';
+        
+        innerDiv.innerHTML = `
+            <div class="rounded-full bg-purple-200 dark:bg-purple-800 text-purple-700 dark:text-purple-200 p-3 shadow">
+                🧑
             </div>
-            <div class="message-content">
+            <div class="bg-gradient-to-br from-purple-500 to-blue-500 dark:from-purple-700 dark:to-blue-700 rounded-2xl px-5 py-3 shadow text-white dark:text-blue-100 font-semibold border border-purple-300 dark:border-purple-900" style="text-shadow:0 1px 6px rgba(0,0,0,0.14); min-width:120px;">
                 <p>${escapeHtml(text)}</p>
             </div>
         `;
+        messageDiv.appendChild(innerDiv);
         chatMessages.appendChild(messageDiv);
         scrollToBottom();
     }
@@ -103,28 +106,31 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         const messageDiv = document.createElement('div');
-        messageDiv.className = 'message bot';
-        messageDiv.innerHTML = `
-            <div class="message-meta">
-                <span class="message-avatar bot-avatar">🤖</span>
-                <span class="message-label">PDF Assistant</span>
-                <span class="message-lang">${lang}</span>
+        messageDiv.className = 'flex items-start gap-3 animate-fade-in mt-2';
+        
+        const innerDiv = document.createElement('div');
+        innerDiv.className = 'message bot flex items-start gap-3 animate-fade-in mt-2';
+        
+        innerDiv.innerHTML = `
+            <div class="rounded-full bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300 p-3 shadow">
+                🤖
             </div>
-            <div class="message-content">
+            <div class="bg-white/90 dark:bg-blue-900/90 backdrop-blur-md rounded-2xl px-5 py-3 shadow text-gray-800 dark:text-blue-100 border border-blue-200 dark:border-blue-800 relative">
                 <p>${escapeHtml(text).replace(/\n/g, '<br>')}</p>
                 <div style="margin-top:0.6em; display:flex; align-items:center; gap:0.5em;">
                   <button class="translate-btn" style="background:linear-gradient(90deg,#6366f1 60%,#43a047 100%); color:#fff; border:none; border-radius:0.7em; padding:0.2em 0.9em; font-size:0.89em; cursor:pointer; box-shadow:0 1px 4px #6366f122;">Translate</button>
                   <select class="translate-lang" style="border-radius:0.7em; padding:0.15em 0.7em; font-size:0.92em; border:1px solid #e0e0e0;"></select>
                 </div>
-                <div class="translated-text" style="display:none; margin-top:0.5em;"></div>
+                <div class="translated-text" style="margin-top:0.5em; padding:0.6em; border-radius:0.7em; background-color:#f1f8e9; display:none;"></div>
             </div>
         `;
+        messageDiv.appendChild(innerDiv);
         chatMessages.appendChild(messageDiv);
         messageDiv.classList.add('fade-in');
         // Translate button logic
         const translateBtn = messageDiv.querySelector('.translate-btn');
-        const translateLang = messageDiv.querySelector('.translate-lang');
-        const translatedDiv = messageDiv.querySelector('.translated-text');
+        const translateLangSelect = messageDiv.querySelector('.translate-lang');
+        const translatedText = messageDiv.querySelector('.translated-text');
         // Language options
         const langOptions = [
             {value: 'en', label: '🇺🇸 English'},
@@ -156,15 +162,15 @@ document.addEventListener('DOMContentLoaded', function() {
             o.value = opt.value;
             o.textContent = opt.label;
             if (opt.value === lastLang) o.selected = true;
-            translateLang.appendChild(o);
+            translateLangSelect.appendChild(o);
         });
-        translateLang.addEventListener('change', function() {
+        translateLangSelect.addEventListener('change', function() {
             localStorage.setItem('last_translate_lang', this.value);
         });
         translateBtn.addEventListener('click', function() {
             translateBtn.disabled = true;
             translateBtn.textContent = 'Translating...';
-            const targetLang = translateLang.value;
+            const targetLang = translateLangSelect.value;
             // Use local backend translation proxy for reliability
             fetch('/api/translate', {
               method: 'POST',
@@ -174,26 +180,26 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(res => res.json())
             .then(data => {
               if (data && data.translatedText) {
-                translatedDiv.innerHTML = `<span class='message-label' style='color:#388e3c;'>${escapeHtml(data.translatedText)}</span>`;
-                translatedDiv.style.display = 'block';
+                translatedText.innerHTML = `<span class='message-label' style='color:#388e3c;'>${escapeHtml(data.translatedText)}</span>`;
+                translatedText.style.display = 'block';
               } else {
                 throw new Error('Translation failed');
               }
               translateBtn.disabled = false;
               translateBtn.textContent = 'Translate';
-              translateLang.disabled = false;
+              translateLangSelect.disabled = false;
             })
             .catch(async () => {
                 const googleUrl = `https://translate.google.com/?sl=auto&tl=${targetLang}&text=${encodeURIComponent(text)}&op=translate`;
-                translatedDiv.innerHTML = `
+                translatedText.innerHTML = `
                   <span class='message-label' style='color:#e53935;'>🌐 AI Translation unavailable</span><br>
                   <span style='color:#555; font-size:0.97em;'>This feature uses advanced AI for instant multilingual support, but the translation service is currently unreachable. Please try again later, or use the link below:</span><br>
                   <a href='${googleUrl}' target='_blank' style='color:#1976d2; text-decoration:underline; font-size:0.98em;'>Translate with Google</a>
                 `;
-                translatedDiv.style.display = 'block';
+                translatedText.style.display = 'block';
                 translateBtn.disabled = false;
                 translateBtn.textContent = 'Translate';
-                translateLang.disabled = false;
+                translateLangSelect.disabled = false;
             });
         });
         scrollToBottom();
@@ -202,13 +208,20 @@ document.addEventListener('DOMContentLoaded', function() {
     // Add a system message to the chat
     window.addSystemMessage = function(text) {
         const messageDiv = document.createElement('div');
-        messageDiv.className = 'message system';
-        messageDiv.innerHTML = `
-            <div class="message-avatar system-avatar">💡</div>
-            <div class="message-content">
+        messageDiv.className = 'flex items-start gap-3 animate-fade-in mt-2';
+        
+        const innerDiv = document.createElement('div');
+        innerDiv.className = 'message system flex items-start gap-3 animate-fade-in mt-2';
+        
+        innerDiv.innerHTML = `
+            <div class="rounded-full bg-yellow-100 dark:bg-yellow-900 text-yellow-600 dark:text-yellow-300 p-3 shadow">
+                💡
+            </div>
+            <div class="bg-white/90 dark:bg-blue-900/90 backdrop-blur-md rounded-2xl px-5 py-3 shadow text-gray-800 dark:text-blue-100 border border-blue-200 dark:border-blue-800 relative">
                 <p>${escapeHtml(text)}</p>
             </div>
         `;
+        messageDiv.appendChild(innerDiv);
         chatMessages.appendChild(messageDiv);
         scrollToBottom();
     }

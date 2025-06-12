@@ -66,6 +66,6 @@ document.addEventListener('DOMContentLoaded', () => {
         questionForm.addEventListener('submit', handleSubmit);
     }
 
-    // Add initial greeting
+    // Default greeting to show the user the system is working
     addMessage('Hello! How can I help you today?', 'bot');
 });

@@ -1,135 +1,250 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Chat</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        .chat-container {
-            height: 500px;
-            border: 1px solid #ccc;
-            padding: 20px;
-            margin-bottom: 20px;
-            overflow-y: auto;
-        }
-        .message {
-            margin: 10px 0;
-            padding: 10px;
-            border-radius: 5px;
-        }
-        .user-message {
-            background-color: #e3f2fd;
-            margin-left: 20%;
-        }
-        .bot-message {
-            background-color: #f5f5f5;
-            margin-right: 20%;
-        }
-        .typing-indicator {
-            display: none;
-            margin: 10px 0;
-            padding: 10px;
-            background-color: #f5f5f5;
-            border-radius: 5px;
-        }
-        .input-container {
-            display: flex;
-            gap: 10px;
-        }
-        input[type="text"] {
-            flex: 1;
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-        }
-        button {
-            padding: 10px 20px;
-            background-color: #2196F3;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-    </style>
+    <title>PDF Assistant - AI Chat</title>
+    <link rel="icon" type="image/svg+xml" href="/static/img/logo.svg" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/tailwind-cdn.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/chat.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/socket.io-client@4.5.4/dist/socket.io.min.js"></script>
 </head>
 <body>
-    <h1>AI Chat Interface</h1>
-    <div class="chat-container" id="chat-container"></div>
-    <div class="typing-indicator" id="typing-indicator">AI is typing...</div>
-    <div class="input-container">
-        <input type="text" id="message-input" placeholder="Type your message here...">
-        <button onclick="sendMessage()">Send</button>
+    <div class="app-container">
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h2 class="sidebar-title">Conversations</h2>
+                <button id="close-sidebar" class="close-btn">×</button>
+            </div>
+            <div class="sidebar-content">
+                <ul class="conversation-list" id="conversation-list">
+                    <!-- Conversations will be dynamically inserted here -->
+                </ul>
+            </div>
+            <div class="sidebar-actions">
+                <button id="new-chat-btn" class="btn btn-primary">New Conversation</button>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <header class="header">
+                <button id="sidebar-toggle" class="sidebar-toggle">
+                    <span>☰</span>
+                </button>
+                <h1>PDF Assistant</h1>
+                <div class="header-actions">
+                    <select id="language-select" class="select-dropdown">
+                        <option value="en">English</option>
+                        <option value="hi">Hindi</option>
+                        <option value="es">Spanish</option>
+                        <option value="fr">French</option>
+                        <option value="de">German</option>
+                        <option value="zh">Chinese</option>
+                    </select>
+                    <select id="theme-select" class="select-dropdown">
+                        <option value="light">Light Mode</option>
+                        <option value="dark">Dark Mode</option>
+                        <option value="system">System</option>
+                    </select>
+                    <button id="help-btn" class="icon-btn">
+                        <span>?</span>
+                    </button>
+                </div>
+            </header>
+
+            <div class="chat-container">
+                <div class="chat-messages" id="chat-messages">
+    <!-- Conversation loading spinner -->
+    <div id="conversation-loading" class="conversation-loading flex items-center justify-center py-6 hidden" aria-live="polite" aria-label="Loading conversation">
+        <svg class="animate-spin h-7 w-7 text-blue-500 dark:text-blue-300 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+        </svg>
+        <span class="text-gray-700 dark:text-gray-200 text-base font-medium">Loading conversation...</span>
+    </div>
+    <!-- Messages will be dynamically inserted here -->
+    <div class="status-message" id="status-indicator">
+        Connecting to server...
+    </div>
+                </div>
+
+                <div id="pdf-upload-container" class="pdf-upload-container">
+                    <div class="pdf-upload-inner">
+                        <div class="pdf-upload-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                <polyline points="14 2 14 8 20 8"></polyline>
+                                <line x1="12" y1="18" x2="12" y2="12"></line>
+                                <line x1="9" y1="15" x2="15" y2="15"></line>
+                            </svg>
+                        </div>
+                        <h3 class="pdf-upload-title">Upload a PDF Document</h3>
+                        <p class="pdf-upload-instruction">Drag and drop a file here or click to browse</p>
+                        <div class="pdf-upload-actions">
+                            <label for="pdf-file-input" class="btn btn-primary pdf-upload-btn">Choose File</label>
+                            <input type="file" id="pdf-file-input" class="pdf-file-input" accept=".pdf" />
+                        </div>
+                        <p class="pdf-upload-limit">Maximum file size: 20MB</p>
+                    </div>
+                </div>
+
+                <div id="pdf-preview" class="pdf-preview hidden">
+                    <div class="pdf-info">
+                        <div class="pdf-thumbnail">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                <polyline points="14 2 14 8 20 8"></polyline>
+                            </svg>
+                        </div>
+                        <div class="pdf-details">
+                            <div id="pdf-filename" class="pdf-filename">document.pdf</div>
+                            <div id="pdf-filesize" class="pdf-filesize">0 KB</div>
+                        </div>
+                        <button id="remove-pdf" class="btn-icon pdf-remove" aria-label="Remove PDF">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="input-area flex items-end gap-2">
+    <form id="question-form" class="question-form flex-1 flex items-end gap-2">
+        <textarea 
+            id="question-input" 
+            class="question-input flex-1 resize-none rounded-md border border-gray-300 dark:border-gray-600 p-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Ask a question about your PDF..."
+            rows="1"
+        ></textarea>
+        <!-- Voice Recording Button -->
+        <button type="button" id="start-recording" aria-label="Start voice recording" class="mic-btn mic-icon flex items-center justify-center rounded-full bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 text-white w-10 h-10 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-400" style="margin-left: 0.5rem;">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 18v2m0 0h3m-3 0H9m6-8a3 3 0 11-6 0V7a3 3 0 016 0v5zm-9 0a9 9 0 0018 0" />
+            </svg>
+        </button>
+        <button type="button" id="stop-recording" aria-label="Stop voice recording" class="mic-btn flex items-center justify-center rounded-full bg-red-500 hover:bg-red-600 dark:bg-red-600 dark:hover:bg-red-700 text-white w-10 h-10 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-400 hidden" style="margin-left: 0.5rem;">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <rect x="7" y="7" width="10" height="10" rx="2" />
+            </svg>
+        </button>
+        <button type="submit" class="send-button" id="send-button" disabled>
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="22" y1="2" x2="11" y2="13"></line>
+                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+            </svg>
+        </button>
+    </form>
+    <div class="flex flex-col ml-2 gap-1">
+        <span id="recording-status" class="text-xs text-gray-600 dark:text-gray-300 h-5"></span>
+    </div>
+    <div class="suggestions-container" id="suggestions-container">
+        <!-- Suggestions will be dynamically inserted here -->
+    </div>
+</div>
+<style>
+.mic-icon.pulsing {
+    animation: mic-pulse 1s infinite;
+}
+@keyframes mic-pulse {
+    0% { box-shadow: 0 0 0 0 rgba(59,130,246,0.7); }
+    70% { box-shadow: 0 0 0 10px rgba(59,130,246,0); }
+    100% { box-shadow: 0 0 0 0 rgba(59,130,246,0); }
+}
+</style>
+            </div>
+        </div>
     </div>
 
-    <script>
-        function addMessage(message, isUser) {
-            const container = document.getElementById('chat-container');
-            const messageDiv = document.createElement('div');
-            messageDiv.className = message ;
-            messageDiv.textContent = message;
-            container.appendChild(messageDiv);
-            container.scrollTop = container.scrollHeight;
-        }
-
-        function showTyping() {
-            const typingIndicator = document.getElementById('typing-indicator');
-            typingIndicator.style.display = 'block';
-        }
-
-        function hideTyping() {
-            const typingIndicator = document.getElementById('typing-indicator');
-            typingIndicator.style.display = 'none';
-        }
-
-        async function sendMessage() {
-            const input = document.getElementById('message-input');
-            const message = input.value.trim();
-            
-            if (!message) return;
-
-            // Add user message to chat
-            addMessage(message, true);
-            input.value = '';
-
-            // Show typing indicator
-            showTyping();
-
-            try {
-                const response = await fetch('/api/chat', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ question: message })
-                });
-
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-
-                const data = await response.json();
-                hideTyping();
-                addMessage(data.response, false);
+    <!-- Help Modal -->
+    <div id="help-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>PDF Assistant Help</h2>
+                <button id="close-help-modal" class="close-btn" aria-label="Close help">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="help-section">
+                    <h3>Getting Started</h3>
+                    <p>Upload a PDF document and ask questions about its contents. The PDF Assistant will analyze the document and provide relevant answers.</p>
+                </div>
                 
-            } catch (error) {
-                hideTyping();
-                addMessage('Error: Unable to get response from AI', false);
-                console.error('Error:', error);
-            }
-        }
+                <div class="help-section">
+                    <h3>Common Questions</h3>
+                    <ul class="help-list">
+                        <li>"What is this document about?"</li>
+                        <li>"Summarize the key points in this document."</li>
+                        <li>"What are the main arguments presented in the document?"</li>
+                        <li>"Extract all dates and key figures mentioned in the PDF."</li>
+                        <li>"Compare the first and second sections of the document."</li>
+                    </ul>
+                </div>
+                
+                <div class="help-section">
+                    <h3>Keyboard Shortcuts</h3>
+                    <div class="shortcuts-grid">
+                        <div class="shortcut-item">
+                            <div class="shortcut-keys">
+                                <kbd>/</kbd>
+                            </div>
+                            <div class="shortcut-desc">Focus search box</div>
+                        </div>
+                        <div class="shortcut-item">
+                            <div class="shortcut-keys">
+                                <kbd>Ctrl</kbd> + <kbd>Enter</kbd>
+                            </div>
+                            <div class="shortcut-desc">Send message</div>
+                        </div>
+                        <div class="shortcut-item">
+                            <div class="shortcut-keys">
+                                <kbd>Ctrl</kbd> + <kbd>N</kbd>
+                            </div>
+                            <div class="shortcut-desc">New conversation</div>
+                        </div>
+                        <div class="shortcut-item">
+                            <div class="shortcut-keys">
+                                <kbd>Ctrl</kbd> + <kbd>S</kbd>
+                            </div>
+                            <div class="shortcut-desc">Toggle sidebar</div>
+                        </div>
+                        <div class="shortcut-item">
+                            <div class="shortcut-keys">
+                                <kbd>Ctrl</kbd> + <kbd>L</kbd>
+                            </div>
+                            <div class="shortcut-desc">Change language</div>
+                        </div>
+                        <div class="shortcut-item">
+                            <div class="shortcut-keys">
+                                <kbd>?</kbd>
+                            </div>
+                            <div class="shortcut-desc">Show this help</div>
+                        </div>
+                        <div class="shortcut-item">
+                            <div class="shortcut-keys">
+                                <kbd>Esc</kbd>
+                            </div>
+                            <div class="shortcut-desc">Close modal or clear input</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="help-section">
+                    <h3>Tips</h3>
+                    <ul class="help-list">
+                        <li>Use the language selector to change the interface language.</li>
+                        <li>Dark mode can be toggled in the theme selector.</li>
+                        <li>You can export your conversation history in TXT format.</li>
+                        <li>Previous conversations can be accessed from the sidebar.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
 
-        // Send message on Enter key press
-        document.getElementById('message-input').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                sendMessage();
-            }
-        });
-    </script>
+    <!-- Script imports -->
+    <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/chat.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/voice/voice.js') }}"></script>
 </body>
 </html>

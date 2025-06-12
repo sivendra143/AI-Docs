@@ -112,15 +112,203 @@ body {
   margin: 0 auto;
   width: 100%;
   padding: 0 1rem;
+  height: calc(100vh - 120px); /* Fixed height calculation */
+  overflow: hidden; /* Prevent overflow */
+  position: relative;
 }
 
 .chat-messages {
   flex: 1;
+  height: calc(100% - 80px); /* Leave space for input area */
   overflow-y: auto;
-  padding: 1rem 0;
+  overflow-x: hidden;
+  padding: 1rem 0.5rem 1rem 1rem; /* Added right padding for scrollbar */
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  scroll-behavior: smooth; /* Smooth scrolling */
+  -webkit-overflow-scrolling: touch; /* Momentum scrolling on iOS */
+}
+
+/* Custom scrollbar for Chrome, Edge, Safari */
+.chat-messages::-webkit-scrollbar {
+  width: 6px;
+  background: transparent;
+}
+.chat-messages::-webkit-scrollbar-thumb {
+  background: var(--primary-color);
+  border-radius: 10px;
+}
+.chat-messages::-webkit-scrollbar-thumb:hover {
+  background: var(--primary-hover);
+}
+
+/* Firefox scrollbar */
+.chat-messages {
+  scrollbar-width: thin;
+  scrollbar-color: var(--primary-color) transparent;
+  margin-right: 1px; /* Prevent layout shift in some browsers */
+}
+
+/* Custom scrollbar styling for WebKit browsers */
+.chat-messages::-webkit-scrollbar {
+  width: 6px;
+  height: 6px; /* For horizontal scrolling if needed */
+}
+
+.chat-messages::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 10px;
+}
+
+.chat-messages::-webkit-scrollbar-thumb {
+  background-color: rgba(0,0,0,0.2);
+  border-radius: 20px;
+  transition: background-color 0.3s ease;
+}
+
+.chat-messages::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(0,0,0,0.4);
+}
+
+/* Dark mode scrollbar */
+[data-theme="dark"] .chat-messages::-webkit-scrollbar-thumb,
+html.dark .chat-messages::-webkit-scrollbar-thumb {
+  background-color: rgba(255,255,255,0.2);
+}
+
+[data-theme="dark"] .chat-messages::-webkit-scrollbar-thumb:hover,
+html.dark .chat-messages::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255,255,255,0.3);
+}
+
+/* PDF Upload */
+.pdf-upload-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  border: 2px dashed var(--border-color);
+  border-radius: var(--border-radius);
+  margin: 1rem 0;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.pdf-upload-container:hover {
+  border-color: var(--primary-color);
+  background-color: var(--bg-secondary);
+}
+
+.pdf-upload-container.dragover {
+  border-color: var(--primary-color);
+  background-color: rgba(74, 111, 165, 0.05);
+}
+
+.pdf-upload-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.pdf-upload-icon {
+  margin-bottom: 1rem;
+  color: var(--primary-color);
+}
+
+.pdf-upload-title {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: var(--text-color);
+}
+
+.pdf-upload-instruction {
+  margin-bottom: 1.5rem;
+  color: var(--text-secondary);
+}
+
+.pdf-upload-actions {
+  margin-bottom: 1rem;
+}
+
+.pdf-upload-btn {
+  margin: 0;
+}
+
+.pdf-file-input {
+  width: 0.1px;
+  height: 0.1px;
+  opacity: 0;
+  overflow: hidden;
+  position: absolute;
+  z-index: -1;
+}
+
+.pdf-upload-limit {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+/* PDF Preview */
+.pdf-preview {
+  display: flex;
+  flex-direction: column;
+  margin: 1rem 0;
+  padding: 1rem;
+  background-color: var(--bg-secondary);
+  border-radius: var(--border-radius);
+  transition: all 0.3s ease;
+}
+
+.pdf-preview.hidden {
+  display: none;
+}
+
+.pdf-info {
+  display: flex;
+  align-items: center;
+}
+
+.pdf-thumbnail {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--primary-color);
+  color: white;
+  border-radius: 4px;
+  margin-right: 1rem;
+  flex-shrink: 0;
+}
+
+.pdf-details {
+  flex: 1;
+}
+
+.pdf-filename {
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+  word-break: break-all;
+}
+
+.pdf-filesize {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.pdf-remove {
+  margin-left: 0.5rem;
+  color: var(--text-secondary);
+  width: 30px;
+  height: 30px;
+}
+
+.pdf-remove:hover {
+  color: var(--error-color, #ef4444);
 }
 
 /* Messages */
@@ -483,8 +671,23 @@ body {
   font-size: 0.9rem;
   font-weight: 500;
   cursor: pointer;
-  transition: background-color 0.2s ease, transform 0.1s ease;
+  transition: all 0.2s ease;
   gap: 0.5rem;
+  position: relative;
+  overflow: hidden;
+  text-decoration: none;
+  outline: none;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+.btn:active {
+  transform: translateY(1px) scale(0.98);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.2);
 }
 
 .btn-primary {
@@ -494,6 +697,19 @@ body {
 
 .btn-primary:hover {
   background-color: var(--primary-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.btn-secondary {
+  background-color: var(--bg-alt-color);
+  color: var(--text-color);
+}
+
+.btn-secondary:hover {
+  background-color: var(--border-color);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
 }
 
 .btn-outline {
@@ -504,6 +720,40 @@ body {
 
 .btn-outline:hover {
   background-color: var(--border-color);
+  transform: translateY(-2px);
+}
+
+.btn-danger {
+  background-color: var(--error-color, #ef4444);
+  color: white;
+}
+
+.btn-danger:hover {
+  background-color: var(--error-hover-color, #dc2626);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(220, 38, 38, 0.2);
+}
+
+/* Dark mode button specifics */
+[data-theme="dark"] .btn,
+html.dark .btn {
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+
+[data-theme="dark"] .btn:hover,
+html.dark .btn:hover {
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+}
+
+[data-theme="dark"] .btn-secondary,
+html.dark .btn-secondary {
+  background-color: #374151;
+  color: white;
+}
+
+[data-theme="dark"] .btn-secondary:hover,
+html.dark .btn-secondary:hover {
+  background-color: #4b5563;
 }
 
 .btn-icon {
@@ -600,6 +850,110 @@ body {
 
 .modal-body {
   padding: 1.5rem;
+  max-height: 70vh;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-color) transparent;
+}
+
+.modal-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.modal-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.modal-body::-webkit-scrollbar-thumb {
+  background-color: var(--border-color);
+  border-radius: 10px;
+}
+
+/* Help modal specific styles */
+.help-section {
+  margin-bottom: 1.5rem;
+}
+
+.help-section h3 {
+  margin-top: 0;
+  margin-bottom: 0.75rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--primary-color);
+}
+
+.help-list {
+  list-style-type: disc;
+  margin-left: 1.2rem;
+  line-height: 1.6;
+}
+
+.help-list li {
+  margin-bottom: 0.5rem;
+}
+
+.shortcuts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.shortcut-item {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem;
+  border-radius: var(--border-radius);
+  background-color: var(--bg-secondary);
+  transition: background-color 0.2s ease;
+}
+
+.shortcut-item:hover {
+  background-color: var(--border-color);
+}
+
+.shortcut-keys {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-right: 0.75rem;
+}
+
+kbd {
+  display: inline-block;
+  padding: 0.2rem 0.5rem;
+  font-size: 0.85rem;
+  font-family: monospace;
+  line-height: 1;
+  color: var(--text-color);
+  background-color: var(--bg-color);
+  border: 1px solid var(--border-color);
+  border-radius: 3px;
+  box-shadow: 0 1px 1px rgba(0,0,0,0.2);
+  white-space: nowrap;
+}
+
+.shortcut-desc {
+  font-size: 0.9rem;
+  color: var(--text-color);
+}
+
+/* Dark mode specific styles for help modal */
+[data-theme="dark"] .shortcut-item,
+html.dark .shortcut-item {
+  background-color: rgba(255,255,255,0.05);
+}
+
+[data-theme="dark"] .shortcut-item:hover,
+html.dark .shortcut-item:hover {
+  background-color: rgba(255,255,255,0.1);
+}
+
+[data-theme="dark"] kbd,
+html.dark kbd {
+  background-color: #2d3748;
+  border-color: #4a5568;
+  box-shadow: 0 1px 1px rgba(0,0,0,0.4);
 }
 
 .modal-footer {

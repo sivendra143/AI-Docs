@@ -216,17 +216,17 @@ class ChatApp {
         const question = this.questionInput.value.trim();
         if (!question || this.isProcessing) return;
         
-        try {
-            this.isProcessing = true;
-            this.questionInput.value = '';
-            this.addUserMessage(question);
-            
-            // Save user message to conversation history
-            this.saveMessageToConversation(question, 'user');
-                    
-            // Show typing indicator to provide visual feedback
-            this.showTypingIndicator();
+        this.isProcessing = true;
+        this.questionInput.value = '';
+        this.addUserMessage(question);
         
+        // Save user message to conversation history
+        this.saveMessageToConversation(question, 'user');
+        
+        // Show typing indicator to provide visual feedback
+        this.showTypingIndicator();
+        
+        try {
             // Create basic message data
             const messageData = {
                 question: question,
@@ -239,16 +239,36 @@ class ChatApp {
                 messageData.hasPdf = true;
                 messageData.pdfName = this.currentPdfFile.name;
                 messageData.pdfSize = this.currentPdfFile.size;
+                
+                // For socket.io, you typically wouldn't send the file directly
+                // But you could upload it via separate fetch/XHR request
+                // or use a socket.io binary event for small files
+                
+                // Example upload via FormData (commented out as it depends on your backend API)
+                /*
+                const formData = new FormData();
+                formData.append('pdf', this.currentPdfFile);
+                formData.append('conversation_id', this.currentConversationId);
+                
+                // Upload the PDF file separately
+                const response = await fetch('/api/upload-pdf', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    messageData.pdfId = result.pdfId; // Include the ID of the uploaded PDF
+                }
+                */
             }
             
-            // Send question to backend via socket.io
-            console.log('Sending message via socket:', messageData);
+            // Send the message through socket.io
             this.socket.emit('ask', messageData);
         } catch (error) {
             console.error('Error sending message:', error);
+            this.addSystemMessage('Failed to send message');
             this.isProcessing = false;
-            this.removeTypingIndicator();
-            this.addSystemMessage(`Error: ${error.message || 'Failed to send message'}`);
         }
     }
     
@@ -267,11 +287,8 @@ class ChatApp {
                 console.log('Adding bot response to chat');
                 this.addBotMessage(trimmedResponse);
                 
-                // Save bot message to conversation
+                // Save the conversation with the new message
                 this.saveMessageToConversation(trimmedResponse, 'bot');
-                
-                // Make sure we scroll to the bottom to see new messages
-                this.scrollToBottom();
             } else {
                 console.warn('Empty response received from server');
                 this.addSystemMessage('Empty response received from server');
@@ -283,7 +300,6 @@ class ChatApp {
     }
     
     showTypingIndicator() {
-        console.log('Showing typing indicator');
         if (!this.chatMessages) return;
         
         // Remove existing typing indicator if any
@@ -313,27 +329,7 @@ class ChatApp {
                     background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; font-size: 1.2rem;">🤖</span>
                 <span style="font-weight: 600; font-size: 0.9rem;">PDF Assistant</span>
             </div>
-            <div style="display: flex; align-items: center;">
-                <div class="typing-dots" style="display: flex;">
-                    <span style="height: 8px; width: 8px; border-radius: 50%; background-color: ${baseTextColor}; margin-right: 4px; opacity: 0.6; animation: typingDot 1.4s infinite ease-in-out;" style="animation-delay: 0s"></span>
-                    <span style="height: 8px; width: 8px; border-radius: 50%; background-color: ${baseTextColor}; margin-right: 4px; opacity: 0.6; animation: typingDot 1.4s infinite ease-in-out; animation-delay: 0.2s;"></span>
-                    <span style="height: 8px; width: 8px; border-radius: 50%; background-color: ${baseTextColor}; margin-right: 4px; opacity: 0.6; animation: typingDot 1.4s infinite ease-in-out; animation-delay: 0.4s;"></span>
-                </div>
-            </div>
         </div>`;
-        
-        // Add the animation style if it doesn't exist
-        if (!document.getElementById('typing-animation-style')) {
-            const styleEl = document.createElement('style');
-            styleEl.id = 'typing-animation-style';
-            styleEl.textContent = `
-                @keyframes typingDot {
-                    0%, 60%, 100% { transform: translateY(0); }
-                    30% { transform: translateY(-4px); }
-                }
-            `;
-            document.head.appendChild(styleEl);
-        }
         
         if (this.chatMessages) {
             this.chatMessages.appendChild(typingDiv);
@@ -461,18 +457,13 @@ class ChatApp {
                 const targetLang = select.value;
                 this.translateMessage(messageDiv, text, targetLang);
             });
-        }
-    }
-    
-    scrollToBottom() {
-        if (this.chatMessages) {
-            this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
-            
-            // Force scroll to bottom with a slight delay to ensure DOM updates are complete
-            setTimeout(() => {
-                this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
-            }, 100);
-        } else {
+
+if (responseText) {
+// Make sure we have a non-empty response
+const trimmedResponse = responseText.trim();
+if (trimmedResponse) {
+console.log('Adding bot response to chat');
+this.addBotMessage(trimmedResponse);
             console.error('Chat messages container not found when scrolling to bottom');
         }
     }
@@ -592,8 +583,11 @@ class ChatApp {
         this.addConversationToList(conversation);
         this.loadConversation(id);
         
-        // No default greeting - removed per user request
-        console.log('New conversation created:', id);
+        // Add default greeting message to help users understand the system is working
+        setTimeout(() => {
+            this.addBotMessage('Hello! How can I help you today?');
+            this.saveMessageToConversation('Hello! How can I help you today?', 'bot');
+        }, 500);
     }
     
     saveConversationLocally(conversation) {
@@ -695,40 +689,147 @@ class ChatApp {
         deleteBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             this.deleteConversation(conversation.id);
+        });
+    }
+        
+    this.conversationList.appendChild(item);
+}
+    
+createNewConversation() {
+    // Create a new conversation
+    const id = 'conv_' + Date.now();
+    const conversation = {
+        id: id,
+        title: 'New Conversation',
+        created_at: new Date().toISOString(),
+        messages: []
+    };
+        
+    // Save to localStorage as fallback
+    this.saveConversationLocally(conversation);
+        
+    // Try to save to server
+    fetch('/api/conversations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(conversation)
+    }).catch(error => {
+        console.warn('Could not save conversation to server:', error);
+    });
+        
+    // Update UI
+    this.addConversationToList(conversation);
+    this.loadConversation(id);
+    // Do NOT send any default assistant greeting or message here.
+}
+    
+saveConversationLocally(conversation) {
+    const savedConversations = localStorage.getItem('conversations');
+    let conversations = [];
+        
+    if (savedConversations) {
+        try {
+            conversations = JSON.parse(savedConversations);
+        } catch (error) {
+            console.error('Error parsing local conversations:', error);
+        }
+    }
+        
+    // Update or add the conversation
+    const index = conversations.findIndex(c => c.id === conversation.id);
+    if (index !== -1) {
+        conversations[index] = conversation;
+    } else {
+        conversations.push(conversation);
+    }
+        
+    localStorage.setItem('conversations', JSON.stringify(conversations));
+}
+
+exportConversation(format) {
+    // Export the current conversation
+    if (!this.currentConversationId) {
+        this.addSystemMessage('No conversation to export');
+        return;
+    }
+        
+    if (format === 'txt') {
+        this.exportAsTxt();
+    } else if (format === 'pdf') {
+        this.exportAsPdf();
+    }
+}
+    
+exportAsTxt() {
+    // Get conversation content
+    const messages = this.getAllMessages();
+    if (!messages || messages.length === 0) {
+        this.addSystemMessage('No messages to export');
+        return;
+    }
+        
+    // Format content
+    let content = `PDF Assistant Chat Export\n`;
+    content += `Date: ${new Date().toLocaleString()}\n\n`;
+        
+    messages.forEach(msg => {
+        const role = msg.classList.contains('user-message') ? 'You' : 'PDF Assistant';
+        const text = msg.querySelector('p')?.textContent || '';
+        content += `${role}: ${text}\n\n`;
+    });
+        
+    // Create download link
+    const blob = new Blob([content], {type: 'text/plain'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `conversation_${this.currentConversationId}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+}
+    
+exportAsPdf() {
+    this.addSystemMessage('PDF export functionality will be available soon.');
+}
+    
+getAllMessages() {
+    if (!this.chatMessages) return [];
+    return Array.from(this.chatMessages.querySelectorAll('.message'));
+}
+    
 loadConversation(id) {
     if (!id) return;
-    console.log('Loading conversation:', id);
+    console.log(`Loading conversation ${id}`);
     
     // Show loading spinner
     const spinner = document.getElementById('conversation-loading');
     if (spinner) spinner.classList.remove('hidden');
     
-    // Clear chat and show loading message
+    // Clear chat messages and show loading indicator
     if (this.chatMessages) {
         this.chatMessages.innerHTML = '';
         this.addSystemMessage('Loading conversation...');
     } else {
         console.error('Chat messages container not found');
     }
-    
     this.scrollToBottom();
     
-    // Set current conversation ID
-    this.currentConversationId = id;
-    
-    // Get conversation data from API
+    // Fetch conversation data from server
     fetch(`/api/conversations/${id}`)
         .then(response => response.json())
         .then(data => {
-            // Hide spinner
+            console.log('Conversation data loaded:', data);
+            this.currentConversationId = id;
+            
+            // Hide the loading spinner after conversation is loaded
             if (spinner) spinner.classList.add('hidden');
             
-            // Clear previous loading message
+            // Clear the system loading message
             if (this.chatMessages) {
                 this.chatMessages.innerHTML = '';
             }
             
-            // Render conversation messages
+            // Display conversation messages
             if (data && data.messages && data.messages.length > 0) {
                 data.messages.forEach(msg => {
                     if (msg.type === 'user') {
@@ -1254,27 +1355,24 @@ loadConversation(id) {
         
         console.log(`Saving ${type} message to conversation ${this.currentConversationId}`);
         
-        try {
-            // Create message object
-            const message = {
-                id: `msg_${Date.now()}`,
-                type: type,
-                content: text,
-                timestamp: new Date().toISOString()
-            };
-            
-            // Try to save to API
-            fetch(`/api/conversations/${this.currentConversationId}/messages`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(message)
-            }).catch(error => {
-                console.warn('Could not save message to API, falling back to localStorage', error);
-                this.saveMessageLocally(message);
-            });
-        } catch (error) {
-            console.error('Error saving message:', error);
-        }
+        // Create message object
+        const message = {
+            id: `msg_${Date.now()}`,
+            type: type,
+            content: text,
+            timestamp: new Date().toISOString()
+        };
+        
+        // Try to save to server
+        fetch(`/api/conversations/${this.currentConversationId}/messages`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: message })
+        }).catch(error => {
+            console.warn('Could not save message to server:', error);
+            // Save locally as fallback
+            this.saveMessageLocally(message);
+        });
     }
     
     /**

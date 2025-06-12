@@ -52,14 +52,29 @@ document.addEventListener('DOMContentLoaded', async function() {
             document.querySelectorAll('.doc-cb-label').forEach(label => {
               label.addEventListener('mouseenter', function(e) {
                 const docName = this.querySelector('.doc-cb').value;
+                console.log('Fetching document preview for:', docName);
+                
                 fetch(`/api/document/preview/${encodeURIComponent(docName)}`)
-                  .then(res => res.json())
+                  .then(res => {
+                    if (!res.ok) {
+                      console.error('Document preview error:', res.status, res.statusText);
+                      throw new Error(`Error loading preview (${res.status})`);
+                    }
+                    return res.json();
+                  })
                   .then(data => {
                     if (data.preview) {
                       previewTooltip.querySelector('.preview-content').textContent = data.preview;
                       positionPreview(e.clientX, e.clientY);
                       previewTooltip.style.opacity = '1';
+                      console.log('Document preview loaded successfully');
                     }
+                  })
+                  .catch(error => {
+                    console.error('Failed to load document preview:', error);
+                    previewTooltip.querySelector('.preview-content').textContent = 'Preview unavailable';
+                    positionPreview(e.clientX, e.clientY);
+                    previewTooltip.style.opacity = '1';
                   });
               });
 

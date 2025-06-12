@@ -1,65 +1,151 @@
 // theme.js - Dark/light theme toggle functionality
 
-// theme.js - Enhanced global dark/light theme toggle for all pages
-
 document.addEventListener('DOMContentLoaded', function() {
-    const themeToggleBtn = document.getElementById('theme-toggle-btn');
     const htmlElement = document.documentElement;
-
-    // Helper: Set theme globally and dispatch event for other scripts
+    const themeToggleBtn = document.getElementById('theme-toggle-btn');
+    const themeSelect = document.getElementById('theme-select');
+    
+    // Get theme from localStorage or use system default
+    const savedTheme = localStorage.getItem('theme') || 'system';
+    
+    // Helper: Set theme globally and save preference
     function setTheme(theme) {
-        htmlElement.setAttribute('data-theme', theme);
+        // Save to localStorage
         localStorage.setItem('theme', theme);
-        // Dispatch a custom event so other scripts can react
-        window.dispatchEvent(new CustomEvent('themeChanged', { detail: { theme } }));
+        
+        if (theme === 'dark') {
+            htmlElement.setAttribute('data-theme', 'dark');
+            htmlElement.classList.add('dark');
+        } else if (theme === 'light') {
+            htmlElement.setAttribute('data-theme', 'light');
+            htmlElement.classList.remove('dark');
+        } else if (theme === 'system') {
+            // Use system preference
+            const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            const systemTheme = systemPrefersDark ? 'dark' : 'light';
+            
+            htmlElement.setAttribute('data-theme', systemTheme);
+            if (systemPrefersDark) {
+                htmlElement.classList.add('dark');
+            } else {
+                htmlElement.classList.remove('dark');
+            }
+        }
+        
+        // Update button appearance if it exists
+        updateThemeButtonAppearance();
+        
+        // Update select dropdown if it exists
+        if (themeSelect) {
+            themeSelect.value = theme;
+        }
     }
-
-    // Check for saved theme preference or use system preference
-    const savedTheme = localStorage.getItem('theme');
-    const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-
-    // Set initial theme
-    if (savedTheme) {
-        setTheme(savedTheme);
-    } else {
-        const initialTheme = systemPrefersDark ? 'dark' : 'light';
-        setTheme(initialTheme);
+    
+    // Update theme toggle button appearance
+    function updateThemeButtonAppearance() {
+        if (!themeToggleBtn) return;
+        
+        const lightIcon = themeToggleBtn.querySelector('.light-icon');
+        const darkIcon = themeToggleBtn.querySelector('.dark-icon');
+        const currentTheme = htmlElement.getAttribute('data-theme');
+        
+        // Show the icon for the opposite theme (what you can switch to)
+        if (currentTheme === 'dark') {
+            if (lightIcon) lightIcon.style.display = 'inline';
+            if (darkIcon) darkIcon.style.display = 'none';
+        } else {
+            if (lightIcon) lightIcon.style.display = 'none';
+            if (darkIcon) darkIcon.style.display = 'inline';
+        }
     }
-
+    
+    // Apply saved theme on page load
+    setTheme(savedTheme);
+    
     // Toggle theme when button is clicked
     if (themeToggleBtn) {
         themeToggleBtn.addEventListener('click', function() {
             const currentTheme = htmlElement.getAttribute('data-theme');
             const newTheme = currentTheme === 'light' ? 'dark' : 'light';
             setTheme(newTheme);
-            updateThemeButtonAppearance(newTheme);
         });
     }
-
-    // Update button appearance based on current theme
-    function updateThemeButtonAppearance(theme) {
-        if (!themeToggleBtn) return;
-        const lightIcon = themeToggleBtn.querySelector('.light-icon');
-        const darkIcon = themeToggleBtn.querySelector('.dark-icon');
-        // Show the icon for the theme you can switch to
-        if (theme === 'dark') {
-            lightIcon && (lightIcon.style.display = 'inline');  // ☀️ sun to switch to light
-            darkIcon && (darkIcon.style.display = 'none');
-        } else {
-            lightIcon && (lightIcon.style.display = 'none');
-            darkIcon && (darkIcon.style.display = 'inline');  // 🌙 moon to switch to dark
+    
+    // Handle theme dropdown changes
+    if (themeSelect) {
+        themeSelect.addEventListener('change', function() {
+            setTheme(this.value);
+        });
+    }
+    
+    // Listen for system preference changes
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+        if (localStorage.getItem('theme') === 'system') {
+            setTheme('system');
+        }
+    });
+    
+    // Sidebar toggle (for chat interface)
+    const sidebarToggle = document.getElementById('sidebar-toggle');
+    const sidebar = document.querySelector('.sidebar');
+    const mainContent = document.querySelector('.main-content');
+    const closeSidebar = document.getElementById('close-sidebar');
+    
+    if (sidebarToggle && sidebar && mainContent) {
+        // Check localStorage for sidebar state
+        const sidebarOpen = localStorage.getItem('sidebar-open') !== 'false';
+        
+        // Set initial state
+        if (!sidebarOpen) {
+            sidebar.classList.add('collapsed');
+            mainContent.classList.add('expanded');
+        }
+        
+        // Toggle sidebar
+        sidebarToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('collapsed');
+            mainContent.classList.toggle('expanded');
+            localStorage.setItem('sidebar-open', !sidebar.classList.contains('collapsed'));
+        });
+        
+        // Close sidebar button (mobile)
+        if (closeSidebar) {
+            closeSidebar.addEventListener('click', () => {
+                sidebar.classList.add('collapsed');
+                mainContent.classList.add('expanded');
+                localStorage.setItem('sidebar-open', false);
+            });
         }
     }
-
-    // Initialize button appearance
-    updateThemeButtonAppearance(htmlElement.getAttribute('data-theme'));
-
-    // Listen for system preference changes and update theme
-    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
-        const systemTheme = e.matches ? 'dark' : 'light';
-        setTheme(systemTheme);
-        updateThemeButtonAppearance(systemTheme);
-    });
+    
+    // Help modal toggle
+    const helpBtn = document.getElementById('help-btn');
+    const helpModal = document.getElementById('help-modal');
+    const closeHelpModal = document.getElementById('close-help-modal');
+    
+    if (helpBtn && helpModal) {
+        helpBtn.addEventListener('click', () => {
+            helpModal.style.display = 'flex';
+        });
+        
+        if (closeHelpModal) {
+            closeHelpModal.addEventListener('click', () => {
+                helpModal.style.display = 'none';
+            });
+        }
+        
+        // Close on click outside
+        helpModal.addEventListener('click', (e) => {
+            if (e.target === helpModal) {
+                helpModal.style.display = 'none';
+            }
+        });
+        
+        // Close on Esc key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && helpModal.style.display === 'flex') {
+                helpModal.style.display = 'none';
+            }
+        });
+    }
 });
-
-

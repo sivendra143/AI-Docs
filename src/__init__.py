@@ -3,7 +3,7 @@ from src.main.routes import main_bp
 
 def create_app():
     app = Flask(__name__)
-    app.config.from_object('config.Development')
+    app.config.from_object('src.config.Config')
 
     # Initialize extensions
     from src.extensions import db, login_manager
